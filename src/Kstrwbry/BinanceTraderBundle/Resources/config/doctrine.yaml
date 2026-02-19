@@ -1,0 +1,8 @@
+#doctrine:
+#    dbal:
+#        types:
+#            signal: App\Kstrwbry\BinanceTraderBundle\Type\SignalType
+#    orm:
+#        resolve_target_entities:
+#            App\Kstrwbry\BinanceTraderBundle\Schablonen\KlineInterface: App\Entity\Kline
+#            App\Kstrwbry\BinanceTraderBundle\Schablonen\KlineRawInterface: App\Entity\KlineRaw

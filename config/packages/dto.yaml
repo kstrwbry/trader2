@@ -1,0 +1,18 @@
+kstrwbry_dto:
+    dto_definitions:
+        Strategy:
+            strategy_name: string
+            stop_loss_condition: int
+            indicators: array #'App\Kstrwbry\DtoBundle\Interfaces\DTOInterface[]'
+        RVI:
+            period: int
+            lower_signal_line: int
+            upper_signal_line: int
+        RSI:
+            period: int
+            lower_signal_line: int
+            upper_signal_line: int
+        MACD:
+            short_period: int
+            long_period: int
+            signal_period: int

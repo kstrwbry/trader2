@@ -1,0 +1,48 @@
+doctrine:
+    dbal:
+        url: '%env(resolve:DATABASE_URL)%'
+        #driver: 'pdo_sqlite'
+        #path: '%kernel.project_dir%/var/data.db'
+        types:
+            signal: App\Kstrwbry\BinanceTraderBundle\Type\SignalType
+    orm:
+        naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
+        auto_mapping: true
+        mappings:
+            App:
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Entity'
+                prefix: 'App\Entity'
+                alias: App
+        resolve_target_entities:
+            App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface: App\Entity\Kline
+            App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineRawInterface: App\Entity\KlineRaw
+            App\Kstrwbry\BinanceTraderBundle\Interfaces\MACDInterface: App\Entity\MACD
+            App\Kstrwbry\BinanceTraderBundle\Interfaces\RSIInterface: App\Entity\RSI
+            App\Kstrwbry\BinanceTraderBundle\Interfaces\RVIInterface: App\Entity\RVI
+            App\Kstrwbry\BinanceTraderBundle\Interfaces\StdDevInterface: App\Entity\StdDev
+
+
+when@test:
+    doctrine:
+        dbal:
+            # "TEST_TOKEN" is typically set by ParaTest
+            dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+
+when@prod:
+    doctrine:
+        orm:
+            query_cache_driver:
+                type: pool
+                pool: doctrine.system_cache_pool
+            result_cache_driver:
+                type: pool
+                pool: doctrine.result_cache_pool
+
+    framework:
+        cache:
+            pools:
+                doctrine.result_cache_pool:
+                    adapter: cache.app
+                doctrine.system_cache_pool:
+                    adapter: cache.system

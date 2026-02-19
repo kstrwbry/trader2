@@ -1,0 +1,10 @@
+services:
+    App\Kstrwbry\DtoBundle\:
+        resource: '../../*'
+        exclude: '../../{DependencyInjection,Resources,Tests},KstrwbryDtoBundle'
+        autowire: true
+        autoconfigure: true
+        bind:
+            string $appDir: '%kernel.app_dir%'
+            string $namespace: 'App'
+            array $dtoDefinitions: '%kstrwbry_dto%'

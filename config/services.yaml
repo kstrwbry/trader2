@@ -1,0 +1,43 @@
+parameters:
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../../{DependencyInjection,Entity,Strategy}'
+            - '../src/Entity/'
+            - '../src/EntityBuilder/'
+            - '../src/Strategy/'
+            - '../src/Kernel.php'
+            - '../src/Kstrwbry/**/*'
+
+    Binance\API: ~
+
+    binance.api.blank:
+        class: Binance\API
+        arguments:
+            - '%binance.api.api_key%'
+            - '%binance.api.api_secret%'
+
+    binance.api.login:
+        class: Binance\API
+        arguments:
+            - '%binance.api.api_key%'
+            - '%binance.api.api_secret%'
+
+    Binance\API $binanceApiBlank: '@binance.api.blank'
+    Binance\API $binanceApiLogin: '@binance.api.login'
+
+    # EntityBuilderFactory lives in src/EntityBuilder/ which is excluded from the
+    # bulk App\ resource — register it explicitly so it can be autowired.
+    App\EntityBuilder\EntityBuilderFactory: ~
+
+    # Bind the full processed binance-trader config to the command so it can
+    # resolve which strategy + indicators to use without knowing the YAML structure.
+    App\Command\FetchBinanceDataCommand:
+        arguments:
+            $traderConfig: '%kstrwbry_binance_trader%'

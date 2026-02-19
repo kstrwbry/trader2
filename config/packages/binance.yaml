@@ -1,0 +1,3 @@
+parameters:
+    binance.api.api_key: env(BINANCE_API_KEY)
+    binance.api.api_secret: env(BINANCE_API_SECRET)
