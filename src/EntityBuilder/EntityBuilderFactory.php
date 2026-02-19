@@ -3,12 +3,15 @@ declare(strict_types=1);
 
 namespace App\EntityBuilder;
 
+use App\DTO\IndicatorDTO;
 use App\DTO\MacdDTO;
 use App\DTO\RsiDTO;
 use App\DTO\RviDTO;
+use App\DTO\StddevDTO;
 use App\Kstrwbry\BinanceTraderBundle\EntityBase\MACD as MACDBase;
 use App\Kstrwbry\BinanceTraderBundle\EntityBase\RSI as RSIBase;
 use App\Kstrwbry\BinanceTraderBundle\EntityBase\RVI as RVIBase;
+use App\Kstrwbry\BinanceTraderBundle\EntityBase\StdDev as StdDevBase;
 use App\Kstrwbry\DtoBundle\Base\DtoBase;
 use App\Kstrwbry\DtoBundle\Interfaces\DTOInterface;
 use InvalidArgumentException;
@@ -22,9 +25,10 @@ class EntityBuilderFactory
      * @var array<class-string, array{0: class-string<EntityBuilderBase>, 1: class-string<DtoBase>}>
      */
     protected array $entityBuilders = [
-        MACDBase::class => [MacdBuilder::class, MacdDTO::class],
-        RSIBase::class  => [RsiBuilder::class,  RsiDTO::class],
-        RVIBase::class  => [RviBuilder::class,  RviDTO::class],
+        MACDBase::class   => [MacdBuilder::class,   MacdDTO::class],
+        RSIBase::class    => [RsiBuilder::class,    RsiDTO::class],
+        RVIBase::class    => [RviBuilder::class,    RviDTO::class],
+        StdDevBase::class => [StdDevBuilder::class, StddevDTO::class],
     ];
 
     /**
@@ -32,15 +36,15 @@ class EntityBuilderFactory
      * the raw config array (e.g. from binance-trader.yaml).
      *
      * @param class-string $entityClass Fully-qualified entity class name
-     * @param array        $config      Raw config values (snake_case keys from YAML)
+     * @param IndicatorDTO $indicatorDTO Raw config values (snake_case keys from YAML)
      */
-    public function createBuilder(string $entityClass, array $config): EntityBuilderBase
+    public function createBuilder(string $entityClass, IndicatorDTO $indicatorDTO): EntityBuilderBase
     {
         [$builderClass, $dtoClass] = $this->getBuilderAndDtoClass($entityClass);
 
-        $dto = $this->hydrateDto($dtoClass, $config);
+        $indicatorEntityDto = $this->hydrateDto($dtoClass, $indicatorDTO->getIndicatorConfig());
 
-        return new $builderClass($entityClass, $dto);
+        return new $builderClass($indicatorEntityDto, $indicatorDTO->getIndicatorDependencies());
     }
 
     /**

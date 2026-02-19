@@ -5,7 +5,7 @@ namespace App\Kstrwbry\BinanceTraderBundle\Interfaces;
 
 interface RSIInterface extends IndicatorEntityInterface
 {
-    public const ?string INDICATOR_NAME = 'rsi';
+    public const ?string INDICATOR_NAME = 'RSI';
 
     public function __construct(
         KlineInterface    $kline,

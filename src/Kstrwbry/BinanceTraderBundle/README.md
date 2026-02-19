@@ -51,7 +51,7 @@ Fetch data from database or define your own `ArrayCollection` and push them into
 
 ```php
 use Doctrine\Common\Collections\ArrayCollection;
-use App\Kstrwbry\BinanceTraderBundle\Indicator\RVI as RVICalculator;
+use App\Kstrwbry\BinanceTraderBundle\Indicator\Rvi as RVICalculator;
 use App\Kstrwbry\BinanceTraderBundle\Entity\RVI as RVIEntity;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\RVIInterface;
 use Doctrine\ORM\EntityManagerInterface;

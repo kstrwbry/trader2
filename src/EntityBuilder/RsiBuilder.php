@@ -11,41 +11,31 @@ use App\Kstrwbry\DtoBundle\Interfaces\DTOInterface;
 
 class RsiBuilder extends EntityBuilderBase
 {
-    /**
-     * @var class-string<RSI>
-     */
-    protected string $entityClass;
-
     protected DTOInterface|RsiDTO $config;
 
     public function __construct(
-        string       $entityClass,
-        DTOInterface $config
+        DTOInterface $config,
+        array $indicatorDependencies,
     ) {
-        if (!$config instanceof RsiDTO) {
-            throw new \InvalidArgumentException(sprintf(
-                'Expected config of type %s, got %s',
-                RsiDTO::class,
-                get_class($config),
-            ));
-        }
+        $this->validateConfigClass($config, RsiDTO::class);
 
-        parent::__construct($entityClass, $config);
+        parent::__construct($config, $indicatorDependencies);
     }
 
     /**
      * Build and return an indicator entity instance.
      */
     public function build(
-        KlineInterface              $kline,
+        KlineInterface $kline,
         IndicatorEntityInterface|null $prevEntity,
+        array $indicatorDependencies,
     ): IndicatorEntityInterface {
         return new RSI(
             $kline,
             $prevEntity,
             $this->config->getPeriod(),
-            (float) $this->config->getLowerSignalLine(),
-            (float) $this->config->getUpperSignalLine(),
+            (float)$this->config->getLowerSignalLine(),
+            (float)$this->config->getUpperSignalLine(),
         );
     }
 }

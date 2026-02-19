@@ -13,8 +13,7 @@ use Doctrine\ORM\Mapping as ORM;
  * Base entity for Standard Deviation (StdDev).
  * Used as a dependency of RVI — not a top-level indicator in the strategy config.
  */
-#abstract
-class StdDev implements StdDevInterface
+abstract class StdDev implements StdDevInterface
 {
     use
         IdTrait,

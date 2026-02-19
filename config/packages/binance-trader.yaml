@@ -3,11 +3,11 @@ kstrwbry_binance_trader:
         macd-rvi:
             stop_loss_condition: 1
             indicators:
-                macd:
+                Macd:
                     short_period: 12
                     long_period: 26
-                    signal_period: 26
-                rvi:
+                    signal_period: 9
+                Rvi:
                     period: 14
                     lower_signal_line: 30
                     upper_signal_line: 70

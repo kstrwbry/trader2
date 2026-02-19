@@ -12,8 +12,7 @@ use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorEntityTrait;
 use App\Kstrwbry\BinanceTraderBundle\Trait\SignalPropertyTrait;
 use Doctrine\ORM\Mapping as ORM;
 
-#abstract
-class MACD implements SignalPropertyInterface, MACDInterface
+abstract class MACD implements SignalPropertyInterface, MACDInterface
 {
     use
         IdTrait,
@@ -36,6 +35,9 @@ class MACD implements SignalPropertyInterface, MACDInterface
     #[ORM\Column(name:'signal_period', type:'smallint', nullable:false, options:['default' => 9, 'unsigned' => true])]
     protected readonly int $signalPeriod;
 
+    #[ORM\Column(name:'macd', type:'float', nullable:false, options:['default' => 0])]
+    protected readonly float $macd;
+
     #[ORM\Column(name:'short_ema', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected readonly float $shortEMA;
     #[ORM\Column(name:'long_ema', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
@@ -45,7 +47,7 @@ class MACD implements SignalPropertyInterface, MACDInterface
 
     #[ORM\Column(name:'close', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected readonly float $close;
-    #[ORM\Column(name:'cross', type:'signal', nullable:false, options:['default' => 0])]
+    #[ORM\Column(name:'"cross"', type:'signal', nullable:false, options:['default' => 0])]
     protected int $cross = 0;
 
     public function __construct(
@@ -81,6 +83,17 @@ class MACD implements SignalPropertyInterface, MACDInterface
     public function getClose(): float
     {
         return $this->close;
+    }
+
+    public function getMacd(): float
+    {
+        return $this->macd;
+    }
+
+    public function setMacd(float $macd): static
+    {
+        $this->macd = $macd;
+        return $this;
     }
 
     public function getShortEMA(): float
@@ -146,7 +159,7 @@ class MACD implements SignalPropertyInterface, MACDInterface
         }
 
         $prevCross = $this->getPrevEntity()->getCross();
-        $this->cross = $this->shortEMA <=> $this->longEMA;
+        $this->cross = $this->macd <=> $this->getSignalEMA();
 
         $signal = TraderConsts::SIGNAL_NEUTRAL;
 

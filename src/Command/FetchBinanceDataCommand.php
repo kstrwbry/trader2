@@ -151,6 +151,10 @@ class FetchBinanceDataCommand extends Command
             'takerBuyQuoteAssetVolume'=> $chart['Q'],
         ];
 
+        if ($klineData['isClosed'] !== '1') {
+            return;
+        }
+
         $this->logger->notice(sprintf(
             "symbol: %s\ndata: %s",
             $symbol,

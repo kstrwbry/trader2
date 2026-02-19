@@ -10,7 +10,7 @@ use App\Kstrwbry\BinanceTraderBundle\Interfaces\MACDInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorTrait;
 
-class MACD implements IndicatorInterface
+class Macd implements IndicatorInterface
 {
     use IndicatorTrait;
 
@@ -23,6 +23,12 @@ class MACD implements IndicatorInterface
         $this->bulk();
     }
 
+    /**
+     * @param IndicatorEntityInterface|MACDInterface $number
+     * @param int $index
+     *
+     * @return void
+     */
     protected function calc(IndicatorEntityInterface $number, int $index): void
     {
         $this->calcEMA($number);
@@ -48,6 +54,8 @@ class MACD implements IndicatorInterface
             $number->getSignalPeriod(),
             $number->getPrevEntity()?->getSignalEMA() ?? 0.0),
         );
+
+        $number->setMacd($number->getShortEMA() - $number->getLongEMA());
     }
 
     private function calcSignal(MACDInterface $number): void

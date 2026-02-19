@@ -5,7 +5,7 @@ namespace App\Kstrwbry\BinanceTraderBundle\Interfaces;
 
 interface RVIInterface extends IndicatorEntityInterface, StdDevConnectionInterface
 {
-    public const string INDICATOR_NAME = 'rvi';
+    public const string INDICATOR_NAME = 'RVI';
 
     public const array INDICATOR_DEPENDENCIES = [StdDevInterface::INDICATOR_NAME];
 

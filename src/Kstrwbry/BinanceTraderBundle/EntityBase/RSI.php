@@ -12,8 +12,7 @@ use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorEntityTrait;
 use App\Kstrwbry\BinanceTraderBundle\Trait\SignalPropertyTrait;
 use Doctrine\ORM\Mapping as ORM;
 
-#abstract
-class RSI implements SignalPropertyInterface, RSIInterface
+abstract class RSI implements SignalPropertyInterface, RSIInterface
 {
     use
         IdTrait,

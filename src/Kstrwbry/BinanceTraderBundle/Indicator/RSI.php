@@ -23,6 +23,12 @@ class RSI implements IndicatorInterface
         $this->bulk();
     }
 
+    /**
+     * @param IndicatorEntityInterface|RSIInterface $number
+     * @param int $index
+     *
+     * @return void
+     */
     protected function calc(IndicatorEntityInterface $number, int $index)
     {
         $this->calcRSI($index, $number);

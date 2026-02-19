@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Strategy;
 
+use App\DTO\IndicatorDTO;
 use App\EntityBuilder\EntityBuilderBase;
 use App\EntityBuilder\EntityBuilderFactory;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -26,11 +27,7 @@ class Strategy
     private readonly ArrayCollection $klines;
 
     /**
-     * @var array<string, array{
-     *     indicator: IndicatorInterface,
-     *     builder: EntityBuilderBase,
-     *     prevEntity: IndicatorEntityInterface|null
-     * }>
+     * @var array<string, IndicatorDTO>
      */
     private array $indicators = [];
 
@@ -55,16 +52,24 @@ class Strategy
     private function initIndicator(
         array  $indicatorConfig,
         string $indicatorName,
-    ): void {
-        $indicator = $this->createIndicatorFromName($indicatorName);
+    ): IndicatorDTO {
         $entityFQN = $this->getEntityFQN($indicatorName);
-        $builder   = $this->factory->createBuilder($entityFQN, $indicatorConfig);
 
-        $this->indicators[$indicatorName] = [
-            'indicator'  => $indicator,
-            'builder'    => $builder,
-            'prevEntity' => null,
-        ];
+        $indicatorDependencies = [];
+        foreach ($entityFQN::INDICATOR_DEPENDENCIES as $dependentIndicatorName) {
+            $indicatorDependencies[$dependentIndicatorName] = $this->initIndicator($indicatorConfig, $dependentIndicatorName);
+        }
+
+        $indicatorDTO = $this->indicators[$indicatorName] = new IndicatorDTO()
+            ->setIndicatorName($indicatorName)
+            ->setIndicator($this->createIndicatorFromName($indicatorName))
+            ->setIndicatorConfig($indicatorConfig)
+            ->setPrevEntity(null)
+            ->setIndicatorDependencies($indicatorDependencies);
+
+        $indicatorDTO->setBuilder($this->factory->createBuilder($entityFQN, $indicatorDTO));
+
+        return $indicatorDTO;
     }
 
     /**
@@ -86,26 +91,21 @@ class Strategy
 
         $built = [];
 
-        foreach ($this->indicators as $indicatorName => &$indicatorData) {
-            /** @var IndicatorInterface $indicator */
-            $indicator = $indicatorData['indicator'];
-            /** @var EntityBuilderBase $builder */
-            $builder   = $indicatorData['builder'];
-
+        foreach ($this->indicators as $indicatorName => $indicatorDTO) {
             // 1. Build the entity (constructor only — no calculation yet).
-            $entity = $builder->build($kline, $indicatorData['prevEntity']);
+            $entity = $indicatorDTO->getBuilder()->build($kline, $indicatorDTO->getPrevEntity(), $indicatorDTO->getIndicatorDependencies());
 
             // 2. Hand it to the Indicator service: this populates intermediate values
             //    (e.g. EMA sums, gain/loss accumulators) that the entity's own
             //    calcIndicator() then reads.
-            $indicator->add($entity);
+            $indicatorDTO->getIndicator()->add($entity);
 
             // 3. Let the entity finalise its own indicator value.
             //    This is the authoritative "calculate & store" call: after this the
             //    entity's persisted columns (rsi, rvi, cross, …) are populated.
             $entity->calcIndicator();
 
-            $indicatorData['prevEntity'] = $entity;
+            $indicatorDTO->setPrevEntity($entity);
             $built[] = $entity;
         }
 
@@ -142,7 +142,7 @@ class Strategy
     private function getIndicatorFQN(string $indicatorName): string
     {
         // YAML keys are lowercase ('macd', 'rvi'); class names are uppercase ('MACD', 'RVI').
-        return static::INDICATOR_NAMESPACE . strtoupper($indicatorName);
+        return static::INDICATOR_NAMESPACE . $indicatorName;
     }
 
     /**
@@ -150,6 +150,6 @@ class Strategy
      */
     private function getEntityFQN(string $entityName): string
     {
-        return static::ENTITY_NAMESPACE . strtoupper($entityName);
+        return static::ENTITY_NAMESPACE . $entityName;
     }
 }

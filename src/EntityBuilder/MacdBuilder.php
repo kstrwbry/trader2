@@ -4,33 +4,23 @@ declare(strict_types=1);
 namespace App\EntityBuilder;
 
 use App\DTO\MacdDTO;
-use App\Entity\MACD;
+use App\Entity\Macd;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
 use App\Kstrwbry\DtoBundle\Interfaces\DTOInterface;
 
 class MacdBuilder extends EntityBuilderBase
 {
-    /**
-     * @var class-string<MACD>
-     */
-    protected string $entityClass;
-
     protected DTOInterface|MacdDTO $config;
 
+    /** {@inheritdoc} */
     public function __construct(
-        string $entityClass,
-        DTOInterface $config
+        DTOInterface $config,
+        array $indicatorDependencies,
     ) {
-        if (!$config instanceof MacdDTO) {
-            throw new \InvalidArgumentException(sprintf(
-                'Expected config of type %s, got %s',
-                MacdDTO::class,
-                get_class($config),
-            ));
-        }
+        $this->validateConfigClass($config, MacdDTO::class);
 
-        parent::__construct($entityClass, $config);
+        parent::__construct( $config, $indicatorDependencies);
     }
 
     /**
@@ -39,8 +29,9 @@ class MacdBuilder extends EntityBuilderBase
     public function build(
         KlineInterface $kline,
         IndicatorEntityInterface|null $prevEntity,
+        array $indicatorDependencies,
     ): IndicatorEntityInterface {
-        return new MACD(
+        return new Macd(
             $kline,
             $prevEntity,
             $this->config->getShortPeriod(),

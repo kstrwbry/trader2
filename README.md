@@ -46,10 +46,11 @@ If you choose `EntityBase`, the indicators will have automatically a `@ORM\OneTo
 (some text is missing)
 ### Indicator Calculation
 Fetch data from database or define your own `ArrayCollection` and push them into an indicator calculation class:
+
 ```php
 use Doctrine\Common\Collections\ArrayCollection;
 use App\Indicator\RVI as RVICalculator;
-use App\Entity\RVI as RVIEntity;
+use App\Entity\Rvi as RVIEntity;
 use App\Interface\RVIInterface;
 use Doctrine\ORM\EntityManagerInterface;
 

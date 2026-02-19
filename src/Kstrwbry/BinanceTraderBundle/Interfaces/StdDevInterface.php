@@ -5,7 +5,7 @@ namespace App\Kstrwbry\BinanceTraderBundle\Interfaces;
 
 interface StdDevInterface extends IndicatorEntityInterface
 {
-    public const ?string INDICATOR_NAME = 'stddev';
+    public const ?string INDICATOR_NAME = 'StdDev';
 
     public function __construct(
         KlineInterface       $kline,

@@ -5,7 +5,7 @@ namespace App\Kstrwbry\BinanceTraderBundle\Interfaces;
 
 interface MACDInterface extends IndicatorEntityInterface
 {
-    public const ?string INDICATOR_NAME = 'macd';
+    public const ?string INDICATOR_NAME = 'MACD';
 
     public function __construct(
         KlineInterface     $kline,

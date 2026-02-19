@@ -18,6 +18,14 @@ trait IndicatorTrait #implements IndicatorInterface
         $this->calc($number, $index);
     }
 
+    /**
+     * @return false|IndicatorEntityInterface
+     */
+    public function last(): false|IndicatorEntityInterface
+    {
+        return $this->numbers->last();
+    }
+
     protected function reset(): void {}
 
     public function bulk(): void

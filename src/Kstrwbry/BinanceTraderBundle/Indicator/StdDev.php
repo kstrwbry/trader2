@@ -6,7 +6,6 @@ namespace App\Kstrwbry\BinanceTraderBundle\Indicator;
 use App\Kstrwbry\BinanceTraderBundle\Helpers\EMA;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorInterface;
-use App\Kstrwbry\BinanceTraderBundle\Interfaces\MACDInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\StdDevInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorTrait;
@@ -14,26 +13,18 @@ use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorTrait;
 use function min;
 use function sqrt;
 
-/** Standard deviation (StdDev) */
+/**
+ * Standard deviation (StdDev) - STATELESS
+ *
+ * All calculation state is stored in the entity database columns.
+ * This class reads from the entity chain (prevEntity, outdated entity via collection)
+ * and writes results back to the current entity's properties.
+ *
+ * No in-memory arrays = supports re-calculation from persisted data.
+ */
 class StdDev implements IndicatorInterface
 {
     use IndicatorTrait;
-
-    private array $prices = [];
-    private array $pricesUpper = [];
-    private array $pricesLower = [];
-
-    private float $priceSum;
-    private float $upperSum;
-    private float $lowerSum;
-
-    private float $stdDevSum;
-    private float $stdDevSumUpper;
-    private float $stdDevSumLower;
-
-    private array $ema = [];
-    private array $upperSumEMA = [];
-    private array $lowerSumEMA = [];
 
     public function __construct(
         /** @var $numbers ArrayCollection<StdDevInterface>|StdDevInterface[] */
@@ -47,67 +38,108 @@ class StdDev implements IndicatorInterface
     /**
      * @param IndicatorEntityInterface|StdDevInterface $number
      * @param int $index
+     *
      * @return void
      */
-    private function calc(IndicatorEntityInterface $number, int $index): void
+    protected function calc(IndicatorEntityInterface $number, int $index): void
     {
         $this->calcStdDev($number, $index);
-        $this->calcEMA($number, $index);
+        $this->calcEMA($number);
     }
 
-    private function calcStdDev(StdDevInterface $number, int $index)
+    /**
+     * Calculates rolling sums (price, upper, lower), average, and standard deviation.
+     *
+     * All intermediate values are read from entity chain and written to entity properties.
+     * No in-memory state is maintained between calls.
+     */
+    private function calcStdDev(StdDevInterface $number, int $index): void
     {
         $period = $number->getPeriod();
-        $prevPrice = $this->prices[$index-1] ?? 0;
+        $price = $number->getClose();
 
-        $price = $this->prices[$index] = $number->getClose();
-        $priceUpper = $this->pricesUpper[$index] = $prevPrice < $price ? $price : 0;
-        $priceLower = $this->pricesLower[$index] = $prevPrice > $price ? $price : 0;
+        // Get previous entity to determine price movement direction
+        $prevEntity = $number->getPrevEntity();
+        $prevPrice = $prevEntity?->getClose() ?? 0.0;
 
-        $outdatedPrice = $this->prices[$index-$period] ?? 0;
-        $outdatedPriceUpper = $this->pricesUpper[$index-$period] ?? 0;
-        $outdatedPriceLower = $this->pricesLower[$index-$period] ?? 0;
+        // Determine if this candle moved up or down
+        $priceUpper = $prevPrice < $price ? $price : 0.0;
+        $priceLower = $prevPrice > $price ? $price : 0.0;
 
-        $this->priceSum += $price - $outdatedPrice;
-        $this->upperSum += $priceUpper - $outdatedPriceUpper;
-        $this->lowerSum += $priceLower - $outdatedPriceLower;
+        // Get outdated entity to shift out of the rolling window
+        $outdatedEntity = $this->getOutdatedEntity($index, $period);
+        $outdatedPrice = $outdatedEntity?->getClose() ?? 0.0;
 
-        $number->setSum($this->priceSum);
-        $number->setSumUpper($this->upperSum);
-        $number->setSumLower($this->lowerSum);
+        $outdatedPrevPrice = $outdatedEntity?->getPrevEntity()?->getClose() ?? 0.0;
+        $outdatedPriceUpper = $outdatedPrevPrice < $outdatedPrice ? $outdatedPrice : 0.0;
+        $outdatedPriceLower = $outdatedPrevPrice > $outdatedPrice ? $outdatedPrice : 0.0;
 
-        $avgPeriod = min($index+1, $period);
-        $avg = $this->priceSum / $avgPeriod;
+        // Calculate rolling sums by adjusting previous entity's sums
+        $prevSum = $prevEntity?->getSum() ?? 0.0;
+        $prevSumUpper = $prevEntity?->getSumUpper() ?? 0.0;
+        $prevSumLower = $prevEntity?->getSumLower() ?? 0.0;
+
+        $priceSum = $prevSum + $price - $outdatedPrice;
+        $sumUpper = $prevSumUpper + $priceUpper - $outdatedPriceUpper;
+        $sumLower = $prevSumLower + $priceLower - $outdatedPriceLower;
+
+        $number->setSum($priceSum);
+        $number->setSumUpper($sumUpper);
+        $number->setSumLower($sumLower);
+
+        // Calculate average
+        $avgPeriod = min($index + 1, $period);
+        $avg = $priceSum / $avgPeriod;
         $number->setAvg($avg);
 
-        // following code could be placed in an own method
-
-        $number->calcIndicator();
-
-        if(0 === $index) {
-            $number->setStdDev(0);
+        // Calculate standard deviation by walking back through entity chain
+        if (0 === $index) {
+            $number->setStdDev(0.0);
             return;
         }
 
-        $period = min($index+1, $number->getPeriod());
-        $avg = $number->getAvg();
+        $actualPeriod = min($index + 1, $period);
+        $stdDevSum = 0.0;
 
-        $stdDevSum = 0;
-        for($i = 0; $i < $period; $i++) {
-            $stdDevSum += ($this->prices[$index - $i] - $avg) ** 2;
+        // Walk backwards through the entity chain to gather prices
+        $currentEntity = $number;
+        for ($i = 0; $i < $actualPeriod; $i++) {
+            if (null === $currentEntity) {
+                break;
+            }
+            $currentPrice = $currentEntity->getClose();
+            $stdDevSum += ($currentPrice - $avg) ** 2;
+            $currentEntity = $currentEntity->getPrevEntity();
         }
 
-        $stdDevValue = sqrt($stdDevSum / $period);
-
+        $stdDevValue = sqrt($stdDevSum / $actualPeriod);
         $number->setStdDev($stdDevValue);
     }
 
+    /**
+     * Calculates exponential moving average for the lower band.
+     * Reads from prevEntity, writes to current entity - fully stateless.
+     */
     private function calcEMA(StdDevInterface $number): void
     {
         $number->setEmaLower(EMA::calcSingle(
             $number->getClose(),
             $number->getPeriod(),
-            $number->getPrevEntity()?->getEmaLower() ?? 0.0),
-        );
+            $number->getPrevEntity()?->getEmaLower() ?? 0.0
+        ));
+    }
+
+    /**
+     * Helper to get the entity that should be shifted out of the rolling window.
+     * This is the entity at position (index - period) in the collection.
+     */
+    private function getOutdatedEntity(int $index, int $period): ?StdDevInterface
+    {
+        $outdatedIndex = $index - $period;
+        if ($outdatedIndex < 0) {
+            return null;
+        }
+
+        return $this->numbers->get($outdatedIndex);
     }
 }

@@ -8,4 +8,4 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'indicator_macd_data')]
-final class MACD extends BaseEntity {}
+final class Macd extends BaseEntity {}

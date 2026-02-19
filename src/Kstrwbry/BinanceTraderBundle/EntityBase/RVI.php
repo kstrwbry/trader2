@@ -14,8 +14,7 @@ use App\Kstrwbry\BinanceTraderBundle\Trait\SignalPropertyTrait;
 use Doctrine\ORM\Mapping as ORM;
 use App\Kstrwbry\BinanceTraderBundle\Trait\StdDevConnectionTrait;
 
-#abstract
-class RVI implements SignalPropertyInterface, RVIInterface
+abstract class RVI implements SignalPropertyInterface, RVIInterface
 {
     use
         IdTrait,
@@ -76,54 +75,54 @@ class RVI implements SignalPropertyInterface, RVIInterface
         $this->upperEMA = $stdDevValue > $prevStdDevValue ? $stdDevValue : 0.0;
         $this->lowerEMA = $stdDevValue < $prevStdDevValue ? $stdDevValue : 0.0;
     }
-    
+
     public function getPeriod(): int
     {
         return $this->period;
     }
-    
+
     public function getClose(): float
     {
         return $this->close;
     }
-    
+
     public function getUpperSignalLine(): float
     {
         return $this->upperSignalLine;
     }
-    
+
     public function getLowerSignalLine(): float
     {
         return $this->lowerSignalLine;
     }
-    
+
     public function getUpperEMASum(): float
     {
         return $this->upperEMASum;
     }
-    
+
     public function setUpperEMASum(float $upperEMASum): static
     {
         $this->upperEMASum = $upperEMASum;
         return $this;
     }
-    
+
     public function getLowerEMASum(): float
     {
         return $this->lowerEMASum;
     }
-    
+
     public function setLowerEMASum(float $lowerEMASum): static
     {
         $this->lowerEMASum = $lowerEMASum;
         return $this;
     }
-    
+
     public function getRvi(): float
     {
         return $this->rvi;
     }
-    
+
     public function setRvi(float $rvi): static
     {
         $this->rvi = $rvi;
@@ -190,16 +189,16 @@ class RVI implements SignalPropertyInterface, RVIInterface
 
         if(
             $lastRvi < $this->getRvi()
-            && $lastRvi <= $this->lowerSignalLine
-            && $this->getRvi() >= $this->lowerSignalLine
+            && $lastRvi <= $this->getLowerSignalLine()
+            && $this->getRvi() >= $this->getLowerSignalLine()
         ) {
             $signal = TraderConsts::SIGNAL_BUY;
         }
 
         if(
             $lastRvi > $this->getRvi()
-            && $lastRvi >= $this->lowerSignalLine
-            && $this->getRvi() <= $this->lowerSignalLine
+            && $lastRvi >= $this->getUpperSignalLine()
+            && $this->getRvi() <= $this->getUpperSignalLine()
         ) {
             $signal = TraderConsts::SIGNAL_SELL;
         }

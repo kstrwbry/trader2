@@ -8,4 +8,4 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'indicator_rvi_data')]
-final class RVI extends BaseEntity {}
+final class Rvi extends BaseEntity {}

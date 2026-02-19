@@ -8,8 +8,7 @@ use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorBaseInterface;
 use App\Kstrwbry\BinanceTraderBundle\Trait\IdTrait;
 use App\Kstrwbry\BinanceTraderBundle\Trait\KlineConnectionTrait;
 
-#abstract
-class IndicatorBase implements IndicatorBaseInterface
+abstract class IndicatorBase implements IndicatorBaseInterface
 {
     use
         IdTrait,

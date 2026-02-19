@@ -4,6 +4,13 @@ kstrwbry_dto:
             strategy_name: string
             stop_loss_condition: int
             indicators: array #'App\Kstrwbry\DtoBundle\Interfaces\DTOInterface[]'
+        Indicator:
+            indicator_name: string
+            indicator: '\App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorInterface'
+            indicatorConfig: array
+            builder: '\App\EntityBuilder\EntityBuilderBase'
+            prev_entity: '\App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface|null'
+            indicator_dependencies: array #'\App\DTO\IndicatorDTO'
         RVI:
             period: int
             lower_signal_line: int
@@ -16,3 +23,5 @@ kstrwbry_dto:
             short_period: int
             long_period: int
             signal_period: int
+        StdDev:
+            period: int
