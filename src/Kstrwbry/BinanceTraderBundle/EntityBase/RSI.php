@@ -20,7 +20,7 @@ abstract class RSI implements SignalPropertyInterface, RSIInterface
         IndicatorEntityTrait
     ;
 
-    #[ORM\OneToOne(targetEntity: RSIInterface::class, cascade: ['persist'])]
+    #[ORM\OneToOne(targetEntity: RSIInterface::class, cascade: ['persist'], fetch: 'LAZY')]
     protected RSIInterface|null $prevEntity = null;
 
     public function getPrevEntity(): RSIInterface|null
@@ -197,6 +197,13 @@ abstract class RSI implements SignalPropertyInterface, RSIInterface
 
     public function calcSignal(): int
     {
+        if(
+            !$this->getPrevEntity()
+            || $this->getPeriod() > ($this->getKline()->getRunIndex() + 1)
+        ) {
+            return $this->setSignal(TraderConsts::SIGNAL_NEUTRAL);
+        }
+
         // TODO: Implement calcSignal() method.
         return $this->signal = TraderConsts::SIGNAL_NEUTRAL;
     }

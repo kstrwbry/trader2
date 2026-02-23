@@ -3,11 +3,12 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Entity\Kline;
-use App\Entity\KlineRaw;
+use App\DTO\KlinerawDTO;
 use App\EntityBuilder\EntityBuilderFactory;
+use App\Logger\KlineLogger;
 use App\Strategy\Strategy;
 use Binance\API as BinanceAPI;
+use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
 use Psr\Log\LoggerInterface;
@@ -28,14 +29,6 @@ use function sprintf;
 class FetchBinanceDataCommand extends Command
 {
     private null|KlineInterface $lastKline = null;
-
-    /**
-     * One Strategy instance per symbol, initialised once in execute().
-     * The Strategy encapsulates all indicator state (prevEntity, EMA accumulators, …).
-     *
-     * @var array<string, Strategy>
-     */
-    private array $strategies = [];
 
     /** Running kline index per symbol, used as the KlineRaw sequence number. */
     private array $symbolIndex = [];
@@ -79,22 +72,30 @@ class FetchBinanceDataCommand extends Command
         // TODO: allow selecting a strategy by name (e.g. via --strategy option).
         $strategyConfig = $this->resolveStrategyConfig();
 
-        foreach ($symbols as $symbol) {
+        foreach($symbols as $symbol) {
             $this->symbolIndex[$symbol] = 0;
 
             // Initialise one Strategy per symbol — this sets up all configured
             // indicators (EntityBuilders + Indicator services) for the stream.
-            $this->strategies[$symbol] = new Strategy(
+            $strategy = new Strategy(
                 $this->logger,
                 $symbol,
                 $this->entityBuilderFactory,
                 $strategyConfig['indicators'],
             );
 
+            $klineLogger = new KlineLogger($this->em, $this->logger);
+
             $this->binanceApiBlank->kline(
                 $symbol,
                 '1m',
-                $this->logKline(...),
+                fn(BinanceAPI $api, string $symbol, mixed $chart) => $klineLogger->logKline(
+                    $this->mapChartAndSymbolToKlinerawDto(
+                        (array)$chart,
+                        $this->symbolIndex[$symbol]++,
+                    ),
+                    $strategy,
+                ),
             );
         }
 
@@ -111,7 +112,7 @@ class FetchBinanceDataCommand extends Command
     {
         $strategies = $this->traderConfig['trader_strategy'] ?? [];
 
-        if (empty($strategies)) {
+        if(empty($strategies)) {
             throw new \RuntimeException(
                 'No trader_strategy entries found in config/packages/binance-trader.yaml.'
             );
@@ -121,73 +122,9 @@ class FetchBinanceDataCommand extends Command
         return reset($strategies);
     }
 
-    /** fix arguments because it's used as callback */
-    private function logKline(
-        BinanceAPI $api,
-        string     $symbol,
-        mixed      $chart
-    ): void {
-        $chart = array_map(
-            static fn($x): string => (string)$x,
-            (array)$chart
-        );
-
-        $klineData = [
-            'startTime'               => $chart['t'],
-            'closeTime'               => $chart['T'],
-            'symbol'                  => $chart['s'],
-            'interval'                => $chart['i'],
-            'firstTradeID'            => $chart['f'],
-            'lastTradeID'             => $chart['L'],
-            'open'                    => $chart['o'],
-            'close'                   => $chart['c'],
-            'high'                    => $chart['h'],
-            'low'                     => $chart['l'],
-            'baseAssetVolume'         => $chart['v'],
-            'tradesCount'             => $chart['n'],
-            'isClosed'                => $chart['x'],
-            'quoteAssetVolume'        => $chart['q'],
-            'takerBuyBaseAssetVolume' => $chart['V'],
-            'takerBuyQuoteAssetVolume'=> $chart['Q'],
-        ];
-
-        if ($klineData['isClosed'] !== '1') {
-            return;
-        }
-
-        $this->logger->notice(sprintf(
-            "symbol: %s\ndata: %s",
-            $symbol,
-            print_r($klineData, true)
-        ));
-
-        // --- Build Kline entities (unchanged — not part of Strategy) ---
-        $raw   = new KlineRaw($this->symbolIndex[$symbol], ...$klineData);
-        $kline = new Kline($raw, $this->lastKline);
-
-        $this->em->persist($raw);
-        $this->em->persist($kline);
-
-        // --- Hand the kline to the Strategy ---
-        // addKline() builds every configured indicator entity, runs the Indicator
-        // service calculations, calls calcIndicator() on each entity, and returns
-        // them all ready for persist.
-        $indicatorEntities = $this->strategies[$symbol]->addKline($kline);
-
-        foreach ($indicatorEntities as $indicatorEntity) {
-            $this->em->persist($indicatorEntity);
-        }
-
-        $this->em->flush();
-
-        // Advance state for next tick.
-        $this->lastKline = $kline;
-        $this->symbolIndex[$symbol]++;
-    }
-
     private function throwUnlessAllSymbolsAreValid(array $mySymbols): void
     {
-        if (0 === count($mySymbols)) {
+        if(0 === count($mySymbols)) {
             throw new InvalidOptionException('Console option "--symbols" must not be empty.');
         }
 
@@ -195,7 +132,7 @@ class FetchBinanceDataCommand extends Command
 
         $invalidSymbols = array_diff($mySymbols, $apiSymbols);
 
-        if (0 === count($invalidSymbols)) {
+        if(0 === count($invalidSymbols)) {
             return;
         }
 
@@ -212,5 +149,51 @@ class FetchBinanceDataCommand extends Command
     {
         // TODO: CACHING
         return array_keys($this->binanceApiBlank->prices());
+    }
+
+    private function mapChartAndSymbolToKlinerawDto(array $chart, int $runIndex): KlinerawDTO
+    {
+        $chart = array_map(
+            static fn($chartValue): string => (string)$chartValue,
+            $chart,
+        );
+
+        return (new KlinerawDTO())
+            ->setStartTime($chart['t'])
+            ->setStartTimeDate($this->timestampToDate($chart['t']))
+            ->setCloseTime($chart['T'])
+            ->setCloseTimeDate($this->timestampToDate($chart['T']))
+            ->setSymbol($chart['s'])
+            ->setInterval($chart['i'])
+            ->setFirstTradeID($chart['f'])
+            ->setLastTradeID($chart['L'])
+            ->setOpen($chart['o'])
+            ->setOpenFloat((float)$chart['o'])
+            ->setClose($chart['c'])
+            ->setCloseFloat((float)$chart['c'])
+            ->setHigh($chart['h'])
+            ->setHighFloat((float)$chart['h'])
+            ->setLow($chart['l'])
+            ->setLowFloat((float)$chart['l'])
+            ->setBaseAssetVolume($chart['v'])
+            ->setBaseAssetVolumeFloat((float)$chart['v'])
+            ->setTradesCount($chart['n'])
+            ->setTradesCountInt((int)$chart['n'])
+            ->setIsClosed($chart['x'])
+            ->setIsClosedBool('1' === $chart['x'])
+            ->setQuoteAssetVolume($chart['q'])
+            ->setQuoteAssetVolumeFloat((float)$chart['q'])
+            ->setTakerBuyBaseAssetVolume($chart['V'])
+            ->setTakerBuyBaseAssetVolumeFloat((float)$chart['V'])
+            ->setTakerBuyQuoteAssetVolume($chart['Q'])
+            ->setTakerBuyQuoteAssetVolumeFloat((float)$chart['Q'])
+            ->setRunIndex($runIndex);
+    }
+
+    private function timestampToDate(int|string $timestamp): DateTime
+    {
+        $seconds = substr((string)$timestamp, 0, 10);
+
+        return (new DateTime())->setTimestamp((int)$seconds);
     }
 }

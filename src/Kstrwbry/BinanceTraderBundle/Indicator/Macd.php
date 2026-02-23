@@ -15,8 +15,8 @@ class Macd implements IndicatorInterface
     use IndicatorTrait;
 
     public function __construct(
-        /** @var ArrayCollection|MACDInterface[] */
-        ArrayCollection $numbers,
+        /** @var $numbers MACDInterface[] */
+        array $numbers,
     ) {
         $this->numbers = $numbers;
 
@@ -49,13 +49,13 @@ class Macd implements IndicatorInterface
             $number->getPrevEntity()?->getLongEMA() ?? 0.0),
         );
 
+        $number->setMacd($number->getShortEMA() - $number->getLongEMA());
+
         $number->setSignalEMA(EMA::calcSingle(
-            $number->getClose(),
+            $number->getMacd(),
             $number->getSignalPeriod(),
             $number->getPrevEntity()?->getSignalEMA() ?? 0.0),
         );
-
-        $number->setMacd($number->getShortEMA() - $number->getLongEMA());
     }
 
     private function calcSignal(MACDInterface $number): void

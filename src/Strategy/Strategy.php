@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace App\Strategy;
 
 use App\DTO\IndicatorDTO;
-use App\EntityBuilder\EntityBuilderBase;
 use App\EntityBuilder\EntityBuilderFactory;
 use Doctrine\Common\Collections\ArrayCollection;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
@@ -16,15 +15,12 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use function array_walk;
 use function class_exists;
 use function is_a;
-use function strtoupper;
 
 class Strategy
 {
     private const INDICATOR_NAMESPACE = '\\App\\Kstrwbry\\BinanceTraderBundle\\Indicator\\';
 
     private const ENTITY_NAMESPACE = '\\App\\Entity\\';
-
-    private readonly ArrayCollection $klines;
 
     /**
      * @var array<string, IndicatorDTO>
@@ -37,7 +33,6 @@ class Strategy
         private readonly EntityBuilderFactory $factory,
         array                                 $config,
     ) {
-        $this->klines = new ArrayCollection();
         $this->init($config);
     }
 
@@ -56,7 +51,7 @@ class Strategy
         $entityFQN = $this->getEntityFQN($indicatorName);
 
         $indicatorDependencies = [];
-        foreach ($entityFQN::INDICATOR_DEPENDENCIES as $dependentIndicatorName) {
+        foreach($entityFQN::INDICATOR_DEPENDENCIES as $dependentIndicatorName) {
             $indicatorDependencies[$dependentIndicatorName] = $this->initIndicator($indicatorConfig, $dependentIndicatorName);
         }
 
@@ -82,41 +77,59 @@ class Strategy
      *   3. entity->calcIndicator() is called so the entity finalises its own stored
      *      values (cross, RSI, RVI, …) immediately before being handed back for persist.
      *
-     * @return IndicatorEntityInterface[] All indicator entities built for this kline,
+     * @return iterable<IndicatorEntityInterface> All indicator entities built for this kline,
      *                                   ready to be persisted by the caller.
      */
-    public function addKline(KlineInterface $kline): array
+    public function addKline(KlineInterface $kline): iterable
     {
-        $this->klines->add($kline);
+        $start = microtime(true);
 
-        $built = [];
+        foreach($this->indicators as $indicatorName => $indicatorDTO) {
+            $startBuildTime = microtime(true);
 
-        foreach ($this->indicators as $indicatorName => $indicatorDTO) {
-            // 1. Build the entity (constructor only — no calculation yet).
-            $entity = $indicatorDTO->getBuilder()->build($kline, $indicatorDTO->getPrevEntity(), $indicatorDTO->getIndicatorDependencies());
+            $entity = $indicatorDTO->getBuilder()->build(
+                $kline,
+                $indicatorDTO->getPrevEntity(),
+                $indicatorDTO->getIndicatorDependencies(),
+            );
 
-            // 2. Hand it to the Indicator service: this populates intermediate values
-            //    (e.g. EMA sums, gain/loss accumulators) that the entity's own
-            //    calcIndicator() then reads.
+            $this->logger->debug(sprintf(
+                'Built entity for indicator "%s" in %.2f ms',
+                $indicatorName,
+                (microtime(true) - $startBuildTime) * 1000,
+            ));
+
+            $startCalculateTime = microtime(true);
             $indicatorDTO->getIndicator()->add($entity);
 
-            // 3. Let the entity finalise its own indicator value.
-            //    This is the authoritative "calculate & store" call: after this the
-            //    entity's persisted columns (rsi, rvi, cross, …) are populated.
             $entity->calcIndicator();
 
-            $indicatorDTO->setPrevEntity($entity);
-            $built[] = $entity;
-        }
+            $this->logger->debug(sprintf(
+                'Calculated indicator "%s" in %.2f ms',
+                $indicatorName,
+                (microtime(true) - $startCalculateTime) * 1000,
+            ));
 
-        return $built;
+            $indicatorDTO->setPrevEntity($entity);
+
+            if ($kline->getRunIndex() + 3 > $entity->getPeriod()) {
+                $indicatorDTO->getIndicator()->shift();
+            }
+
+            yield $entity;
+        }
+    }
+
+    public function getKline(): ?KlineInterface
+    {
+        return current($this->indicators)->getPrevEntity()?->getKline();
     }
 
     private function createIndicatorFromName(string $indicatorName): IndicatorInterface
     {
         $indicatorFQN = $this->getIndicatorFQN($indicatorName);
 
-        if (!class_exists($indicatorFQN)) {
+        if(!class_exists($indicatorFQN)) {
             throw new InvalidConfigurationException(sprintf(
                 'Trader strategy for symbol "%s" has no valid indicator "%s" (class "%s" not found)',
                 $this->symbol,
@@ -125,7 +138,7 @@ class Strategy
             ));
         }
 
-        if (!is_a($indicatorFQN, IndicatorInterface::class, true)) {
+        if(!is_a($indicatorFQN, IndicatorInterface::class, true)) {
             throw new InvalidConfigurationException(sprintf(
                 'Trader strategy for symbol "%s": class "%s" does not implement IndicatorInterface',
                 $this->symbol,
@@ -133,7 +146,7 @@ class Strategy
             ));
         }
 
-        return new $indicatorFQN(new ArrayCollection());
+        return new $indicatorFQN([]);
     }
 
     /**
@@ -141,7 +154,6 @@ class Strategy
      */
     private function getIndicatorFQN(string $indicatorName): string
     {
-        // YAML keys are lowercase ('macd', 'rvi'); class names are uppercase ('MACD', 'RVI').
         return static::INDICATOR_NAMESPACE . $indicatorName;
     }
 

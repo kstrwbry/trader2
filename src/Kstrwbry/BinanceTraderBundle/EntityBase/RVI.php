@@ -23,7 +23,7 @@ abstract class RVI implements SignalPropertyInterface, RVIInterface
         StdDevConnectionTrait
     ;
 
-    #[ORM\OneToOne(targetEntity: RVIInterface::class, cascade: ['persist'])]
+    #[ORM\OneToOne(targetEntity: RVIInterface::class, cascade: ['persist'], fetch: 'LAZY')]
     protected RVIInterface|null $prevEntity = null;
 
     public function getPrevEntity(): RVIInterface|null
@@ -35,6 +35,8 @@ abstract class RVI implements SignalPropertyInterface, RVIInterface
     protected readonly int $period;
     #[ORM\Column(name:'close', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected readonly float $close;
+    #[ORM\Column(name:'"cross"', type:'signal', nullable:false, options:['default' => 0])]
+    protected int $cross = 0;
 
     #[ORM\Column(name:'upper_signal', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected readonly float $upperSignalLine;
@@ -139,6 +141,11 @@ abstract class RVI implements SignalPropertyInterface, RVIInterface
         return $this->lowerEMA;
     }
 
+    public function getCross(): int
+    {
+        return $this->cross;
+    }
+
     private function calcRVI(): void
     {
         $upperEMASum = $this->upperEMASum;
@@ -180,7 +187,12 @@ abstract class RVI implements SignalPropertyInterface, RVIInterface
 
     public function calcSignal(): int
     {
-        if(!$this->getPrevEntity()) {
+        if(
+            !$this->getPrevEntity()
+            || $this->getPeriod() > ($this->getKline()->getRunIndex() + 1)
+        ) {
+            $this->cross = TraderConsts::SIGNAL_NEUTRAL;
+
             return $this->setSignal(TraderConsts::SIGNAL_NEUTRAL);
         }
 
@@ -203,6 +215,12 @@ abstract class RVI implements SignalPropertyInterface, RVIInterface
             $signal = TraderConsts::SIGNAL_SELL;
         }
 
-        return $this->setSignal($signal);
+        $this->signal = $signal;
+
+        $this->cross = $this->getSignal() === TraderConsts::SIGNAL_NEUTRAL
+            ? $this->getPrevEntity()->getCross()
+            : $this->getSignal();
+
+        return $this->getSignal();
     }
 }

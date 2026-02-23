@@ -34,7 +34,7 @@ class DtoClassBuilder
             ->addClass($this->className)
             ->setExtends(DtoBase::class);
 
-        foreach ($this->properties as $propertyName => $types) {
+        foreach($this->properties as $propertyName => $types) {
             $this->addClassProperty($class, $propertyName, $types);
         }
 

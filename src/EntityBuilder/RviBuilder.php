@@ -3,13 +3,11 @@ declare(strict_types=1);
 
 namespace App\EntityBuilder;
 
-use App\DTO\IndicatorDTO;
 use App\DTO\RviDTO;
 use App\Entity\Rvi;
 use App\Entity\StdDev;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
-use App\Kstrwbry\BinanceTraderBundle\Interfaces\RVIInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\StdDevInterface;
 use App\Kstrwbry\DtoBundle\Interfaces\DTOInterface;
 
@@ -34,9 +32,12 @@ class RviBuilder extends EntityBuilderBase
         IndicatorEntityInterface|null $prevEntity,
         array $indicatorDependencies,
     ): Rvi {
+        /** @var StdDev $stdDev */
+        $stdDev = $indicatorDependencies[StdDevInterface::INDICATOR_NAME]->getIndicator()->last();
+
         return new Rvi(
             $kline,
-            $indicatorDependencies[StdDevInterface::INDICATOR_NAME]->getIndicator()->last(),
+            $stdDev,
             $prevEntity,
             $this->config->getPeriod(),
             (float)$this->config->getLowerSignalLine(),

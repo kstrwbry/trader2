@@ -20,9 +20,9 @@ abstract class StdDev implements StdDevInterface
         IndicatorEntityTrait
     ;
 
-    #[ORM\OneToOne(targetEntity: StdDevInterface::class, cascade: ['persist'])]
+    #[ORM\OneToOne(targetEntity: StdDevInterface::class, cascade: ['persist'], fetch: 'LAZY')]
     protected StdDevInterface|null $prevEntity = null;
-    #[ORM\OneToOne(targetEntity: StdDevInterface::class, cascade: ['persist'])]
+    #[ORM\OneToOne(targetEntity: StdDevInterface::class, cascade: ['persist'], fetch: 'LAZY')]
     protected StdDevInterface|null $outdatedStdDev = null;
 
     public function getPrevEntity(): StdDevInterface|null

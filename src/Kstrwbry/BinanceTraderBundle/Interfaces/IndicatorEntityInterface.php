@@ -10,4 +10,6 @@ interface IndicatorEntityInterface extends KlineConnectionInterface
     public const array INDICATOR_DEPENDENCIES = [];
 
     public function calcIndicator(): float;
+
+    public function getPeriod();
 }

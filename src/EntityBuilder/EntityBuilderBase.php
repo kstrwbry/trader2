@@ -46,7 +46,7 @@ abstract class EntityBuilderBase
      */
     protected function validateConfigClass(DTOInterface $config, string $expectedConfigClassName): void
     {
-        if (!$config instanceof $expectedConfigClassName) {
+        if(!$config instanceof $expectedConfigClassName) {
             throw new \InvalidArgumentException(sprintf(
                 'Expected config of type %s, got %s',
                 $expectedConfigClassName,

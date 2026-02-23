@@ -25,7 +25,7 @@ class DtoBase implements DTOInterface
     public function __unserialize(array $data): void
     {
         foreach($data as $key => $value) {
-            if (!property_exists($this, $key)) {
+            if(!property_exists($this, $key)) {
                 continue;
             }
 

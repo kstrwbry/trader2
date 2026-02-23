@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Kstrwbry\BinanceTraderBundle\EntityBase;
 
+use App\DTO\KlinerawDTO;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineRawInterface;
 use App\Kstrwbry\BinanceTraderBundle\Trait\IdTrait;
 use Doctrine\ORM\Mapping as ORM;
@@ -35,10 +36,10 @@ abstract class KlineRaw implements KlineRawInterface
     #[ORM\Column(name:'interval', type:'string', nullable:false, options:['unsigned' => true])]
     protected readonly string $interval;
 
-    #[ORM\Column(name:'first_trade_id', type:'string', nullable:false, options:['unsigned' => true])]
+    #[ORM\Column(name:'first_trade_id', type:'string', nullable:true, options:['unsigned' => true])]
     protected readonly string $firstTradeID;
 
-    #[ORM\Column(name:'last_trade_id', type:'string', nullable:false, options:['unsigned' => true])]
+    #[ORM\Column(name:'last_trade_id', type:'string', nullable:true, options:['unsigned' => true])]
     protected readonly string $lastTradeID;
 
     #[ORM\Column(name:'open', type:'string', nullable:false, options:['unsigned' => true])]
@@ -101,54 +102,36 @@ abstract class KlineRaw implements KlineRawInterface
     #[ORM\Column(name:'taker_buy_quote_asset_volume_float', type:'float', nullable:false, options:['unsigned' => true])]
     protected readonly float $takerBuyQuoteAssetVolumeFloat;
 
-    public function __construct(
-        int    $runIndex,
-        string $startTime,
-        string $closeTime,
-        string $symbol,
-        string $interval,
-        string $firstTradeID,
-        string $lastTradeID,
-        string $open,
-        string $close,
-        string $high,
-        string $low,
-        string $baseAssetVolume,
-        string $tradesCount,
-        string $isClosed,
-        string $quoteAssetVolume,
-        string $takerBuyBaseAssetVolume,
-        string $takerBuyQuoteAssetVolume,
-    ) {
-        $this->startTime = $startTime;
-        $this->startTimeDate = $this->timestampToDate($startTime);
-        $this->closeTime = $closeTime;
-        $this->closeTimeDate = $this->timestampToDate($closeTime);
-        $this->symbol = $symbol;
-        $this->interval = $interval;
-        $this->firstTradeID = $firstTradeID;
-        $this->lastTradeID = $lastTradeID;
-        $this->open = $open;
-        $this->openFloat = (float)$open;
-        $this->close = $close;
-        $this->closeFloat = (float)$close;
-        $this->high = $high;
-        $this->highFloat = (float)$high;
-        $this->low = $low;
-        $this->lowFloat = (float)$low;
-        $this->baseAssetVolume = $baseAssetVolume;
-        $this->baseAssetVolumeFloat = (float)$baseAssetVolume;
-        $this->tradesCount = $tradesCount;
-        $this->tradesCountInt = (int)$tradesCount;
-        $this->isClosed = $isClosed;
-        $this->isClosedBool = '1' === $isClosed;
-        $this->quoteAssetVolume = $quoteAssetVolume;
-        $this->quoteAssetVolumeFloat = (float)$quoteAssetVolume;
-        $this->takerBuyBaseAssetVolume = $takerBuyBaseAssetVolume;
-        $this->takerBuyBaseAssetVolumeFloat = (float)$takerBuyBaseAssetVolume;
-        $this->takerBuyQuoteAssetVolume = $takerBuyQuoteAssetVolume;
-        $this->takerBuyQuoteAssetVolumeFloat = (float)$takerBuyQuoteAssetVolume;
-        $this->runIndex = $runIndex;
+    public function __construct(KlinerawDTO $klinerawDTO) {
+        $this->startTime = $klinerawDTO->getStartTime();
+        $this->startTimeDate = $klinerawDTO->getStartTimeDate();
+        $this->closeTime = $klinerawDTO->getCloseTime();
+        $this->closeTimeDate = $klinerawDTO->getCloseTimeDate();
+        $this->symbol = $klinerawDTO->getSymbol();
+        $this->interval = $klinerawDTO->getInterval();
+        $this->firstTradeID = $klinerawDTO->getFirstTradeID();
+        $this->lastTradeID = $klinerawDTO->getLastTradeID();
+        $this->open = $klinerawDTO->getOpen();
+        $this->openFloat = $klinerawDTO->getOpenFloat();
+        $this->close = $klinerawDTO->getClose();
+        $this->closeFloat = $klinerawDTO->getCloseFloat();
+        $this->high = $klinerawDTO->getHigh();
+        $this->highFloat = $klinerawDTO->getHighFloat();
+        $this->low = $klinerawDTO->getLow();
+        $this->lowFloat = $klinerawDTO->getLowFloat();
+        $this->baseAssetVolume = $klinerawDTO->getBaseAssetVolume();
+        $this->baseAssetVolumeFloat = $klinerawDTO->getBaseAssetVolumeFloat();
+        $this->tradesCount = $klinerawDTO->getTradesCount();
+        $this->tradesCountInt = $klinerawDTO->getTradesCountInt();
+        $this->isClosed = $klinerawDTO->getIsClosed();
+        $this->isClosedBool = $klinerawDTO->getIsClosedBool();
+        $this->quoteAssetVolume = $klinerawDTO->getQuoteAssetVolume();
+        $this->quoteAssetVolumeFloat = $klinerawDTO->getQuoteAssetVolumeFloat();
+        $this->takerBuyBaseAssetVolume = $klinerawDTO->getTakerBuyBaseAssetVolume();
+        $this->takerBuyBaseAssetVolumeFloat = $klinerawDTO->getTakerBuyBaseAssetVolumeFloat();
+        $this->takerBuyQuoteAssetVolume = $klinerawDTO->getTakerBuyQuoteAssetVolume();
+        $this->takerBuyQuoteAssetVolumeFloat = $klinerawDTO->getTakerBuyQuoteAssetVolumeFloat();
+        $this->runIndex = $klinerawDTO->getRunIndex();
     }
 
     public function getClose(): float
@@ -164,12 +147,5 @@ abstract class KlineRaw implements KlineRawInterface
     public function getRunIndex(): int
     {
         return $this->runIndex;
-    }
-
-    private function timestampToDate(int|string $timestamp): DateTime
-    {
-        $seconds = substr((string)$timestamp, 0, 10);
-
-        return (new DateTime())->setTimestamp((int)$seconds);
     }
 }

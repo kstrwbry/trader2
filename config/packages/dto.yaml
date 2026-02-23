@@ -11,6 +11,36 @@ kstrwbry_dto:
             builder: '\App\EntityBuilder\EntityBuilderBase'
             prev_entity: '\App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface|null'
             indicator_dependencies: array #'\App\DTO\IndicatorDTO'
+        KlineRaw:
+            run_index: int
+            start_time: string
+            start_time_date: \DateTime
+            close_time: string
+            close_time_date: \DateTime
+            symbol: string
+            interval: string
+            first_trade_id: string
+            last_trade_id: string
+            open: string
+            open_float: float
+            close: string
+            close_float: float
+            high: string
+            high_float: float
+            low: string
+            low_float: float
+            base_asset_volume: string
+            base_asset_volume_float: float
+            trades_count: string
+            trades_count_int: int
+            is_closed: string
+            is_closed_bool: bool
+            quote_asset_volume: string
+            quote_asset_volume_float: float
+            taker_buy_base_asset_volume: string
+            taker_buy_base_asset_volume_float: float
+            taker_buy_quote_asset_volume: string
+            taker_buy_quote_asset_volume_float: float
         RVI:
             period: int
             lower_signal_line: int

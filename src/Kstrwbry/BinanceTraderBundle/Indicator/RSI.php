@@ -15,8 +15,8 @@ class RSI implements IndicatorInterface
     use IndicatorTrait;
 
     public function __construct(
-        /** @var ArrayCollection|RSIInterface[] */
-        ArrayCollection $numbers
+        /** @var $numbers RSIInterface[] */
+        array $numbers
     ) {
         $this->numbers = $numbers;
 

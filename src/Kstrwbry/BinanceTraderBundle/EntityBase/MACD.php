@@ -20,7 +20,7 @@ abstract class MACD implements SignalPropertyInterface, MACDInterface
         IndicatorEntityTrait
     ;
 
-    #[ORM\OneToOne(targetEntity: MACDInterface::class, cascade: ['persist'])]
+    #[ORM\OneToOne(targetEntity: MACDInterface::class, cascade: ['persist'], fetch: 'LAZY')]
     protected MACDInterface|null $prevEntity = null;
 
     public function getPrevEntity(): MACDInterface|null
@@ -28,23 +28,21 @@ abstract class MACD implements SignalPropertyInterface, MACDInterface
         return $this->prevEntity;
     }
 
-    #[ORM\Column(name:'short_period', type:'smallint', nullable:false, options:['default' => 12, 'unsigned' => true])]
-    protected readonly int $shortPeriod;
-    #[ORM\Column(name:'long_period', type:'smallint', nullable:false, options:['default' => 26, 'unsigned' => true])]
-    protected readonly int $longPeriod;
-    #[ORM\Column(name:'signal_period', type:'smallint', nullable:false, options:['default' => 9, 'unsigned' => true])]
-    protected readonly int $signalPeriod;
-
-    #[ORM\Column(name:'macd', type:'float', nullable:false, options:['default' => 0])]
-    protected readonly float $macd;
-
     #[ORM\Column(name:'short_ema', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected readonly float $shortEMA;
     #[ORM\Column(name:'long_ema', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected readonly float $longEMA;
     #[ORM\Column(name:'signal_ema', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected readonly float $signalEMA;
+    #[ORM\Column(name:'macd', type:'float', nullable:false, options:['default' => 0])]
+    protected readonly float $macd;
 
+    #[ORM\Column(name:'short_period', type:'smallint', nullable:false, options:['default' => 12, 'unsigned' => true])]
+    protected readonly int $shortPeriod;
+    #[ORM\Column(name:'long_period', type:'smallint', nullable:false, options:['default' => 26, 'unsigned' => true])]
+    protected readonly int $longPeriod;
+    #[ORM\Column(name:'signal_period', type:'smallint', nullable:false, options:['default' => 9, 'unsigned' => true])]
+    protected readonly int $signalPeriod;
     #[ORM\Column(name:'close', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected readonly float $close;
     #[ORM\Column(name:'"cross"', type:'signal', nullable:false, options:['default' => 0])]
@@ -134,6 +132,11 @@ abstract class MACD implements SignalPropertyInterface, MACDInterface
         return $this->cross;
     }
 
+    public function getPeriod(): int
+    {
+        return $this->getLongPeriod();
+    }
+
     /**
      * Calculates and stores the EMA crossover state.
      *
@@ -149,12 +152,17 @@ abstract class MACD implements SignalPropertyInterface, MACDInterface
      */
     public function calcIndicator(): float
     {
-        return $this->cross = $this->shortEMA <=> $this->longEMA;
+        return $this->cross = $this->macd <=> $this->getSignalEMA();
     }
 
     public function calcSignal(): int
     {
-        if(!$this->getPrevEntity()) {
+        if(
+            !$this->getPrevEntity()
+            || $this->getShortPeriod() > ($this->getKline()->getRunIndex() + 1)
+            || $this->getLongPeriod() > ($this->getKline()->getRunIndex() + 1)
+            || $this->getSignalPeriod() > ($this->getKline()->getRunIndex() + 1)
+        ) {
             return $this->setSignal(TraderConsts::SIGNAL_NEUTRAL);
         }
 
@@ -163,13 +171,15 @@ abstract class MACD implements SignalPropertyInterface, MACDInterface
 
         $signal = TraderConsts::SIGNAL_NEUTRAL;
 
-        if($this->cross === TraderConsts::MACD_SHORT_IS_HIGHER && ($prevCross === TraderConsts::MACD_EVEN || $prevCross === TraderConsts::MACD_LONG_IS_HIGHER)) {
+        if($this->cross === TraderConsts::MACD_OVER_SIGNAL_LINE && ($prevCross === TraderConsts::MACD_EVEN || $prevCross === TraderConsts::MACD_UNDER_SIGNAL_LINE)) {
             $signal = TraderConsts::SIGNAL_BUY;
         }
 
-        if($this->cross === TraderConsts::MACD_LONG_IS_HIGHER && ($prevCross === TraderConsts::MACD_EVEN || $prevCross === TraderConsts::MACD_SHORT_IS_HIGHER)) {
+        if($this->cross === TraderConsts::MACD_UNDER_SIGNAL_LINE && ($prevCross === TraderConsts::MACD_EVEN || $prevCross === TraderConsts::MACD_OVER_SIGNAL_LINE)) {
             $signal = TraderConsts::SIGNAL_SELL;
         }
+
+        #print_r('macd: ' . $this->macd . ' | signal line: ' . $this->getSignalEMA() . ' | prevCross: ' . $prevCross . ' | cross: ' . $this->cross . ' | signal: ' . $signal . PHP_EOL);
 
         return $this->setSignal($signal);
     }

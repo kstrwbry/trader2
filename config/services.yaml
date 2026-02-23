@@ -41,3 +41,7 @@ services:
     App\Command\FetchBinanceDataCommand:
         arguments:
             $traderConfig: '%kstrwbry_binance_trader%'
+
+    App\Command\ImportTestDataCommand:
+        arguments:
+            $traderConfig: '%kstrwbry_binance_trader%'

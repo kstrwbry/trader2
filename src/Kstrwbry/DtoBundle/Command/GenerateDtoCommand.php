@@ -57,14 +57,14 @@ class GenerateDtoCommand extends Command
 
     protected function clearOutputDirectory(): void
     {
-        if (!is_dir($this->outputDir)) {
+        if(!is_dir($this->outputDir)) {
             return;
         }
 
         $files = glob($this->outputDir . '/*');
-        if ($files) {
-            foreach ($files as $file) {
-                if (is_file($file)) {
+        if($files) {
+            foreach($files as $file) {
+                if(is_file($file)) {
                     unlink($file);
                 }
             }
@@ -73,14 +73,14 @@ class GenerateDtoCommand extends Command
 
     private function createOutputDirectory(): void
     {
-        if (!is_dir($this->outputDir)) {
+        if(!is_dir($this->outputDir)) {
             mkdir($this->outputDir, 0777, true);
         }
     }
 
     private function createDtoClasses(): void
     {
-        foreach ($this->dtoDefinitions['dto_definitions'] as $baseName => $definition) {
+        foreach($this->dtoDefinitions['dto_definitions'] as $baseName => $definition) {
             $this->createDtoClass($baseName, $definition);
         }
 

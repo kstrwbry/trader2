@@ -8,22 +8,27 @@ use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
 
 trait IndicatorTrait #implements IndicatorInterface
 {
-    protected readonly ArrayCollection $numbers;
+    protected array $numbers;
 
     public function add(IndicatorEntityInterface $number): void
     {
-        $this->numbers->add($number);
+        $this->numbers[] = $number;
 
-        $index = $this->numbers->indexOf($number);
+        $index = count($this->numbers) - 1;
         $this->calc($number, $index);
     }
 
     /**
-     * @return false|IndicatorEntityInterface
+     * @return null|IndicatorEntityInterface
      */
-    public function last(): false|IndicatorEntityInterface
+    public function last(): ?IndicatorEntityInterface
     {
-        return $this->numbers->last();
+        return end($this->numbers) ?: null;
+    }
+
+    public function shift(): ?IndicatorEntityInterface
+    {
+        return array_shift($this->numbers);
     }
 
     protected function reset(): void {}

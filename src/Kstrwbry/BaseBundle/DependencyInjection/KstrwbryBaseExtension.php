@@ -31,7 +31,7 @@ class KstrwbryBaseExtension extends Extension
     {
         $newConfigurations = [];
         foreach($this->bundleConfigurations as $configurationClass) {
-            if (!class_exists($configurationClass)) {
+            if(!class_exists($configurationClass)) {
                 continue;
             }
 
@@ -52,8 +52,8 @@ class KstrwbryBaseExtension extends Extension
         $dir = $this->bundleDir . '/Resources/config';
         $servicesFilename = 'services.yaml';
         $servicesFilepath = $dir . '/' . $servicesFilename;
-        
-        if (!is_file($servicesFilepath)) {
+
+        if(!is_file($servicesFilepath)) {
             return;
         }
 

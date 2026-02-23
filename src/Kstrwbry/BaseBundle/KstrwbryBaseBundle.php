@@ -18,7 +18,7 @@ class KstrwbryBaseBundle extends AbstractBundle
 
     public function getContainerExtension(): ?ExtensionInterface
     {
-        if (null === $this->extension) {
+        if(null === $this->extension) {
             $this->extension = $this->createContainerExtension();
         }
 
@@ -29,7 +29,7 @@ class KstrwbryBaseBundle extends AbstractBundle
     {
         $class = $this->getContainerExtensionClass();
 
-        if (!class_exists($class)) {
+        if(!class_exists($class)) {
             return new KstrwbryBaseExtension(
                 $this->getAlias(),
                 $this->getBundlePath(),
@@ -37,7 +37,7 @@ class KstrwbryBaseBundle extends AbstractBundle
             );
         }
 
-        if (is_a($class, KstrwbryBaseExtension::class, true)) {
+        if(is_a($class, KstrwbryBaseExtension::class, true)) {
             return new $class(
                 $this->getAlias(),
                 $this->getBundlePath(),

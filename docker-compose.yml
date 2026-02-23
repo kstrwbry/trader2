@@ -24,6 +24,7 @@ services:
       build: ./docker/php
       volumes:
           - ./:/var/www/html
+          - ./docker/php/memory-limit.ini:/usr/local/etc/php/conf.d/memory-limit.ini
       environment:
           PHP_IDE_CONFIG: "serverName=symfony"
       extra_hosts:

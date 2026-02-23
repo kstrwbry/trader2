@@ -25,8 +25,8 @@ class Rvi implements IndicatorInterface
     use IndicatorTrait;
 
     public function __construct(
-        /** @var ArrayCollection|RVIInterface[] */
-        ArrayCollection $numbers,
+        /** @var $numbers RVIInterface[] */
+        array $numbers,
     ) {
         $this->numbers = $numbers;
 
@@ -95,10 +95,10 @@ class Rvi implements IndicatorInterface
     private function getOutdatedEntity(int $index, int $period): ?RVIInterface
     {
         $outdatedIndex = $index - $period;
-        if ($outdatedIndex < 0) {
+        if($outdatedIndex < 0) {
             return null;
         }
 
-        return $this->numbers->get($outdatedIndex);
+        return $this->numbers[$outdatedIndex];
     }
 }

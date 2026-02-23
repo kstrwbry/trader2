@@ -12,10 +12,10 @@ abstract class Kline implements KlineInterface
 {
     use IdTrait;
 
-    #[ORM\OneToOne(targetEntity: KlineRawInterface::class, cascade: ['persist'])]
+    #[ORM\OneToOne(targetEntity: KlineRawInterface::class, cascade: ['persist'], fetch: 'LAZY')]
     protected KlineRawInterface|null $raw = null;
 
-    #[ORM\OneToOne(targetEntity: KlineInterface::class, cascade: ['persist'])]
+    #[ORM\OneToOne(targetEntity: KlineInterface::class, cascade: ['persist'], fetch: 'LAZY')]
     protected KlineInterface|null $prev = null;
 
     #[ORM\Column(name:'close', type:'float', nullable:false, options:['unsigned' => true])]

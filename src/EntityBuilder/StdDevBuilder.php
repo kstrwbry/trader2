@@ -43,7 +43,7 @@ class StdDevBuilder extends EntityBuilderBase
         $lastStdDev = !empty($this->arrStdDev) ? end($this->arrStdDev) : null;
 
         $outdatedStdDev = null;
-        if (count($this->arrStdDev) >= $this->config->getPeriod()) {
+        if(count($this->arrStdDev) >= $this->config->getPeriod()) {
             $outdatedStdDev = array_shift($this->arrStdDev);
         }
 

@@ -52,8 +52,8 @@ class EntityBuilderFactory
      */
     private function getBuilderAndDtoClass(string $entityClass): array
     {
-        foreach ($this->entityBuilders as $entityBase => [$builderClass, $dtoClass]) {
-            if (is_a($entityClass, $entityBase, true)) {
+        foreach($this->entityBuilders as $entityBase => [$builderClass, $dtoClass]) {
+            if(is_a($entityClass, $entityBase, true)) {
                 return [$builderClass, $dtoClass];
             }
         }

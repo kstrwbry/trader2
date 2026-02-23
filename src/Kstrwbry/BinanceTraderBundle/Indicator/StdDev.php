@@ -27,8 +27,8 @@ class StdDev implements IndicatorInterface
     use IndicatorTrait;
 
     public function __construct(
-        /** @var $numbers ArrayCollection<StdDevInterface>|StdDevInterface[] */
-        ArrayCollection $numbers,
+        /** @var $numbers StdDevInterface[] */
+        array $numbers,
     ) {
         $this->numbers = $numbers;
 
@@ -93,7 +93,7 @@ class StdDev implements IndicatorInterface
         $number->setAvg($avg);
 
         // Calculate standard deviation by walking back through entity chain
-        if (0 === $index) {
+        if(0 === $index) {
             $number->setStdDev(0.0);
             return;
         }
@@ -104,7 +104,7 @@ class StdDev implements IndicatorInterface
         // Walk backwards through the entity chain to gather prices
         $currentEntity = $number;
         for ($i = 0; $i < $actualPeriod; $i++) {
-            if (null === $currentEntity) {
+            if(null === $currentEntity) {
                 break;
             }
             $currentPrice = $currentEntity->getClose();
@@ -136,10 +136,10 @@ class StdDev implements IndicatorInterface
     private function getOutdatedEntity(int $index, int $period): ?StdDevInterface
     {
         $outdatedIndex = $index - $period;
-        if ($outdatedIndex < 0) {
+        if($outdatedIndex < 0) {
             return null;
         }
 
-        return $this->numbers->get($outdatedIndex);
+        return $this->numbers[$outdatedIndex];
     }
 }
