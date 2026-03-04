@@ -8,20 +8,25 @@ use App\Entity\Rvi;
 use App\Entity\StdDev;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
+use App\Kstrwbry\BinanceTraderBundle\Interfaces\RVIInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\StdDevInterface;
 use App\Kstrwbry\DtoBundle\Interfaces\DTOInterface;
+use Doctrine\ORM\EntityManagerInterface;
 
 class RviBuilder extends EntityBuilderBase
 {
     protected DTOInterface|RviDTO $config;
 
+    protected string $entityClass = Rvi::class;
+
     public function __construct(
         DTOInterface $config,
         array $indicatorDependencies,
+        EntityManagerInterface $em,
     ) {
         $this->validateConfigClass($config, RviDTO::class);
 
-        parent::__construct( $config, $indicatorDependencies);
+        parent::__construct( $config, $indicatorDependencies, $em);
     }
 
     /**
@@ -31,11 +36,12 @@ class RviBuilder extends EntityBuilderBase
         KlineInterface $kline,
         IndicatorEntityInterface|null $prevEntity,
         array $indicatorDependencies,
-    ): Rvi {
+    ): RVIInterface {
         /** @var StdDev $stdDev */
         $stdDev = $indicatorDependencies[StdDevInterface::INDICATOR_NAME]->getIndicator()->last();
 
         return new Rvi(
+            $this->getNextId($kline->isClosed()),
             $kline,
             $stdDev,
             $prevEntity,

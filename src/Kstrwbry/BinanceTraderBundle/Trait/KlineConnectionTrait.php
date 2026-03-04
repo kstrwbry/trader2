@@ -8,7 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 trait KlineConnectionTrait #implements KlineConnectionInterface
 {
-    #[ORM\OneToOne(targetEntity: KlineInterface::class, cascade: ['persist'])]
+    #[ORM\OneToOne(targetEntity: KlineInterface::class, cascade:['persist'])]
     protected readonly KlineInterface $kline;
 
     public function getKline(): KlineInterface

@@ -10,6 +10,7 @@ interface RVIInterface extends IndicatorEntityInterface, StdDevConnectionInterfa
     public const array INDICATOR_DEPENDENCIES = [StdDevInterface::INDICATOR_NAME];
 
     public function __construct(
+        int               $id,
         KlineInterface    $kline,
         StdDevInterface   $stdDev,
         RVIInterface|null $lastRVI,
@@ -17,8 +18,6 @@ interface RVIInterface extends IndicatorEntityInterface, StdDevConnectionInterfa
         float             $lowerSignalLine = 30,
         float             $upperSignalLine = 70,
     );
-
-    public function getPrevEntity(): RVIInterface|null;
 
     public function getPeriod(): int;
 

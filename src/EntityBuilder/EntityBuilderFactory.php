@@ -14,10 +14,15 @@ use App\Kstrwbry\BinanceTraderBundle\EntityBase\RVI as RVIBase;
 use App\Kstrwbry\BinanceTraderBundle\EntityBase\StdDev as StdDevBase;
 use App\Kstrwbry\DtoBundle\Base\DtoBase;
 use App\Kstrwbry\DtoBundle\Interfaces\DTOInterface;
+use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 
 class EntityBuilderFactory
 {
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+    ) {}
+
     /**
      * Maps EntityBase class → [BuilderClass, DTOClass].
      * Keyed by the *base* class so that concrete App\Entity\* subclasses match via is_a().
@@ -44,7 +49,7 @@ class EntityBuilderFactory
 
         $indicatorEntityDto = $this->hydrateDto($dtoClass, $indicatorDTO->getIndicatorConfig());
 
-        return new $builderClass($indicatorEntityDto, $indicatorDTO->getIndicatorDependencies());
+        return new $builderClass($indicatorEntityDto, $indicatorDTO->getIndicatorDependencies(), $this->em);
     }
 
     /**

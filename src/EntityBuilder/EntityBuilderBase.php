@@ -7,6 +7,8 @@ use App\DTO\IndicatorDTO;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
 use App\Kstrwbry\DtoBundle\Interfaces\DTOInterface;
+use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 
 abstract class EntityBuilderBase
 {
@@ -14,16 +16,34 @@ abstract class EntityBuilderBase
     /** @var array<IndicatorEntityInterface> */
     protected array $indicatorDependencies;
 
+    /** @var class-string<IndicatorEntityInterface> */
+    protected string $entityClass;
+
+    private Connection $connection;
+
+    private string $sequenceName;
+
     /**
      * @param DTOInterface $config
      * @param array<IndicatorEntityInterface> $indicatorDependencies
+     * @param EntityManagerInterface $em
      */
     public function __construct(
         DTOInterface $config,
         array $indicatorDependencies,
+        EntityManagerInterface $em,
     ) {
         $this->config = $config;
         $this->indicatorDependencies = $indicatorDependencies;
+
+        $this->connection = $em->getConnection();
+
+        $metadata = $em->getClassMetadata($this->entityClass);
+        $this->sequenceName = sprintf(
+            '%s_%s_seq',
+            $metadata->getTableName(),
+            $metadata->getSingleIdentifierColumnName(),
+        );
     }
 
     /**
@@ -44,7 +64,7 @@ abstract class EntityBuilderBase
      * @param class-string<DTOInterface> $expectedConfigClassName
      * @return void
      */
-    protected function validateConfigClass(DTOInterface $config, string $expectedConfigClassName): void
+    final protected function validateConfigClass(DTOInterface $config, string $expectedConfigClassName): void
     {
         if(!$config instanceof $expectedConfigClassName) {
             throw new \InvalidArgumentException(sprintf(
@@ -53,5 +73,17 @@ abstract class EntityBuilderBase
                 get_class($config),
             ));
         }
+    }
+
+    final protected function getNextId(bool $isClosed): int
+    {
+        if($isClosed === false) {
+            return 0;
+        }
+
+        return $this->connection->fetchOne(sprintf(
+            'SELECT NEXTVAL(\'%s\')',
+            $this->sequenceName,
+        ));
     }
 }

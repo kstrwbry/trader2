@@ -5,7 +5,9 @@ namespace App\Kstrwbry\BinanceTraderBundle\Interfaces;
 
 interface KlineInterface
 {
-    public function setPrev(KlineInterface $prev): static;
+    public function setPrevId(int|null $prevId): static;
+
+    public function setPrev(KlineInterface|null $prev): static;
 
     public function getPrev(): KlineInterface|null;
 
@@ -20,4 +22,6 @@ interface KlineInterface
     public function getLoss(): float;
 
     public function getRunIndex(): int;
+
+    public function isClosed(): bool;
 }

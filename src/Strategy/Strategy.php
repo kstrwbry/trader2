@@ -5,11 +5,9 @@ namespace App\Strategy;
 
 use App\DTO\IndicatorDTO;
 use App\EntityBuilder\EntityBuilderFactory;
-use Doctrine\Common\Collections\ArrayCollection;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
 use function array_walk;
@@ -18,9 +16,9 @@ use function is_a;
 
 class Strategy
 {
-    private const INDICATOR_NAMESPACE = '\\App\\Kstrwbry\\BinanceTraderBundle\\Indicator\\';
+    private const string INDICATOR_NAMESPACE = '\\App\\Kstrwbry\\BinanceTraderBundle\\Indicator\\';
 
-    private const ENTITY_NAMESPACE = '\\App\\Entity\\';
+    private const string ENTITY_NAMESPACE = '\\App\\Entity\\';
 
     /**
      * @var array<string, IndicatorDTO>
@@ -28,7 +26,6 @@ class Strategy
     private array $indicators = [];
 
     public function __construct(
-        private readonly LoggerInterface      $logger,
         private readonly string               $symbol,
         private readonly EntityBuilderFactory $factory,
         array                                 $config,
@@ -82,47 +79,52 @@ class Strategy
      */
     public function addKline(KlineInterface $kline): iterable
     {
-        $start = microtime(true);
-
         foreach($this->indicators as $indicatorName => $indicatorDTO) {
-            $startBuildTime = microtime(true);
-
             $entity = $indicatorDTO->getBuilder()->build(
                 $kline,
                 $indicatorDTO->getPrevEntity(),
                 $indicatorDTO->getIndicatorDependencies(),
             );
 
-            $this->logger->debug(sprintf(
-                'Built entity for indicator "%s" in %.2f ms',
-                $indicatorName,
-                (microtime(true) - $startBuildTime) * 1000,
-            ));
-
-            $startCalculateTime = microtime(true);
             $indicatorDTO->getIndicator()->add($entity);
 
             $entity->calcIndicator();
 
-            $this->logger->debug(sprintf(
-                'Calculated indicator "%s" in %.2f ms',
-                $indicatorName,
-                (microtime(true) - $startCalculateTime) * 1000,
-            ));
-
-            $indicatorDTO->setPrevEntity($entity);
-
-            if ($kline->getRunIndex() + 3 > $entity->getPeriod()) {
-                $indicatorDTO->getIndicator()->shift();
+            if (false === $kline->isClosed()) {
+                yield $indicatorName => $entity;
+                continue;
             }
 
-            yield $entity;
+            /** @var IndicatorEntityInterface|null $outdatedEntity */
+            $outdatedEntity = $indicatorDTO->getIndicator()->getOutdatedEntity();
+
+            $indicatorDTO
+                ->setPrevEntity($entity)
+                ->setOutdatedEntity($outdatedEntity);
+
+            $indicatorDTO->getIndicator()->shift();
+
+            $outdatedEntity
+                ?->setPrevEntity(null)
+                ->setOutdatedEntity(null)
+                ->getKline()
+                ->setPrev(null);
+
+            yield $indicatorName => $entity;
         }
     }
 
     public function getKline(): ?KlineInterface
     {
         return current($this->indicators)->getPrevEntity()?->getKline();
+    }
+
+    /**
+     * @return array<string, IndicatorDTO>
+     */
+    public function getIndicators(): array
+    {
+        return $this->indicators;
     }
 
     private function createIndicatorFromName(string $indicatorName): IndicatorInterface

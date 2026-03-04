@@ -7,11 +7,11 @@ use App\DTO\KlinerawDTO;
 use App\EntityBuilder\EntityBuilderFactory;
 use App\Logger\KlineLogger;
 use App\Strategy\Strategy;
+use App\Trader\Trader;
+use Binance\API;
 use Binance\API as BinanceAPI;
 use DateTime;
-use Doctrine\ORM\EntityManagerInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\InvalidOptionException;
@@ -23,6 +23,8 @@ use function array_diff;
 use function array_keys;
 use function array_map;
 use function sprintf;
+use function count;
+use function implode;
 
 //TODO: CRON JOB
 #[AsCommand(name: 'binance:data:fetch')]
@@ -34,10 +36,11 @@ class FetchBinanceDataCommand extends Command
     private array $symbolIndex = [];
 
     public function __construct(
-        private readonly LoggerInterface        $logger,
         private readonly BinanceAPI             $binanceApiBlank,
-        private readonly EntityManagerInterface $em,
+        private readonly API                    $binanceApiLogin,
         private readonly EntityBuilderFactory   $entityBuilderFactory,
+        private readonly Trader                 $trader,
+        private readonly KlineLogger            $klineLogger,
         /**
          * Full processed config from config/packages/binance-trader.yaml.
          * Bound in services.yaml via '%kstrwbry_binance_trader%'.
@@ -75,31 +78,52 @@ class FetchBinanceDataCommand extends Command
         foreach($symbols as $symbol) {
             $this->symbolIndex[$symbol] = 0;
 
+            $this->test($symbol);
+
             // Initialise one Strategy per symbol — this sets up all configured
             // indicators (EntityBuilders + Indicator services) for the stream.
             $strategy = new Strategy(
-                $this->logger,
                 $symbol,
                 $this->entityBuilderFactory,
                 $strategyConfig['indicators'],
             );
 
-            $klineLogger = new KlineLogger($this->em, $this->logger);
-
             $this->binanceApiBlank->kline(
                 $symbol,
                 '1m',
-                fn(BinanceAPI $api, string $symbol, mixed $chart) => $klineLogger->logKline(
-                    $this->mapChartAndSymbolToKlinerawDto(
-                        (array)$chart,
-                        $this->symbolIndex[$symbol]++,
-                    ),
-                    $strategy,
-                ),
+                function(BinanceAPI $api, string $symbol, mixed $chart) use ($strategy) {
+                    $chart = (array)$chart;
+
+                    if (true === $chart['x']) {
+                        $this->symbolIndex[$symbol]++;
+                    }
+
+                    $this->kline(
+                        $this->mapChartAndSymbolToKlinerawDto(
+                            $chart,
+                            $this->symbolIndex[$symbol],
+                        ),
+                        $strategy,
+                    );
+                },
             );
         }
 
         return Command::SUCCESS;
+    }
+
+    private function kline(
+        KlinerawDTO $klinerawDTO,
+        Strategy    $strategy,
+        bool        $doFlush = true,
+    ): void {
+        $this->klineLogger->logKline(
+            $klinerawDTO,
+            $strategy,
+            $doFlush,
+        );
+
+        $this->trader->trade($klinerawDTO, $strategy);
     }
 
     /**
@@ -158,7 +182,7 @@ class FetchBinanceDataCommand extends Command
             $chart,
         );
 
-        return (new KlinerawDTO())
+        return new KlinerawDTO()
             ->setStartTime($chart['t'])
             ->setStartTimeDate($this->timestampToDate($chart['t']))
             ->setCloseTime($chart['T'])
@@ -194,6 +218,10 @@ class FetchBinanceDataCommand extends Command
     {
         $seconds = substr((string)$timestamp, 0, 10);
 
-        return (new DateTime())->setTimestamp((int)$seconds);
+        return new DateTime()->setTimestamp((int)$seconds);
+    }
+
+    private function test(string $symbol): void
+    {
     }
 }

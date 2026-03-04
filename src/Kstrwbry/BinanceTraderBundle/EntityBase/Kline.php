@@ -12,11 +12,12 @@ abstract class Kline implements KlineInterface
 {
     use IdTrait;
 
-    #[ORM\OneToOne(targetEntity: KlineRawInterface::class, cascade: ['persist'], fetch: 'LAZY')]
+    #[ORM\OneToOne(targetEntity: KlineRawInterface::class, cascade:['persist'])]
     protected KlineRawInterface|null $raw = null;
 
-    #[ORM\OneToOne(targetEntity: KlineInterface::class, cascade: ['persist'], fetch: 'LAZY')]
     protected KlineInterface|null $prev = null;
+    #[ORM\Column(name:'prevId', type:'bigint', nullable:true, options:['unsigned' => true])]
+    protected int|null $prevId = null;
 
     #[ORM\Column(name:'close', type:'float', nullable:false, options:['unsigned' => true])]
     protected readonly float $close;
@@ -40,11 +41,14 @@ abstract class Kline implements KlineInterface
     protected readonly float $loss;
 
     public function __construct(
+        int                 $id,
         KlineRawInterface   $raw,
         KlineInterface|null $prev
     ) {
+        $this->id   = $id;
         $this->raw  = $raw;
         $this->prev = $prev;
+        $this->prevId = $prev?->getId();
 
         $this->close = $raw->getClose();
         $this->prevClose = $prev ? $prev->getClose() : 0.0;
@@ -82,12 +86,19 @@ abstract class Kline implements KlineInterface
         return $this->loss;
     }
 
+    public function setPrevId(int|null $prevId): static
+    {
+        $this->prevId = $prevId;
+
+        return $this;
+    }
+
     public function getPrev(): KlineInterface|null
     {
         return $this->prev;
     }
 
-    public function setPrev(KlineInterface $prev): static
+    public function setPrev(KlineInterface|null $prev): static
     {
         $this->prev = $prev;
 
@@ -107,5 +118,10 @@ abstract class Kline implements KlineInterface
     public function getRunIndex(): int
     {
         return $this->raw->getRunIndex();
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->raw->isClosed();
     }
 }

@@ -5,14 +5,24 @@ namespace App\Kstrwbry\DtoBundle\Builder;
 
 use App\Kstrwbry\DtoBundle\Base\DtoBase;
 use Nette\PhpGenerator\ClassType;
+use Nette\PhpGenerator\Method;
 use Nette\PhpGenerator\PhpFile;
 use Symfony\Component\String\UnicodeString;
+
+use function array_filter;
+use function array_map;
+use function explode;
+use function implode;
+use function sprintf;
+use function str_contains;
 
 class DtoClassBuilder
 {
     private string $className;
     private string $namespace;
     private array $properties;
+
+    private Method $constructor;
 
     public function __construct(
         string $className,
@@ -27,12 +37,15 @@ class DtoClassBuilder
     public function build(): PhpFile
     {
         $file = new PhpFile();
+        $file->setStrictTypes(true);
 
         $namespace = $file->addNamespace($this->namespace);
 
         $class = $namespace
             ->addClass($this->className)
             ->setExtends(DtoBase::class);
+
+        $this->constructor = $class->addMethod('__construct');
 
         foreach($this->properties as $propertyName => $types) {
             $this->addClassProperty($class, $propertyName, $types);
@@ -47,22 +60,45 @@ class DtoClassBuilder
         $phpTypes = $this->getPhpTypes($types);
 
         $this->addProperty($class, $propertyName, $phpTypes, $nullable);
+        $this->addConstructorArgument($propertyName, $phpTypes, $nullable);
         $this->addPropertyGetter($class, $propertyName, $phpTypes, $nullable);
         $this->addPropertySetter($class, $propertyName, $phpTypes, $nullable);
     }
 
+    protected function addConstructorArgument(string $propertyName, string $phpTypes, bool $nullable): void
+    {
+        $parameterName = (string)(new UnicodeString($propertyName)->camel());
+
+        $this->constructor
+            ->addParameter($parameterName)
+            ->setType($phpTypes)
+            ->setNullable(true)
+            ->setDefaultValue(null);
+
+        $this->constructor->addBody(
+            sprintf(
+                'if ($%2$s !== null) $this->%1$s = $%2$s; ',
+                $propertyName,
+                $parameterName,
+            )
+        );
+    }
 
     protected function addProperty(ClassType $class, string $propertyName, string $phpTypes, bool $nullable): void
     {
-        $class->addProperty($propertyName)
+        $property = $class->addProperty($propertyName)
             ->setVisibility('protected')
             ->setType($phpTypes)
             ->setNullable($nullable);
+
+        if ($nullable) {
+            $property->setValue(null);
+        }
     }
 
     protected function addPropertyGetter(ClassType $class, string $propertyName, string $phpType, bool $nullable): void
     {
-        $class->addMethod($this->createGetterName($propertyName))
+        $class->addMethod(static::createGetterName($propertyName))
             ->setReturnType($phpType)
             ->setReturnNullable($nullable)
             ->setBody(sprintf('return $this->%s;', $propertyName));
@@ -70,7 +106,7 @@ class DtoClassBuilder
 
     protected function addPropertySetter(ClassType $class, string $propertyName, string $phpType, bool $nullable): void
     {
-        $class->addMethod($this->createSetterName($propertyName))
+        $class->addMethod(static::createSetterName($propertyName))
             ->setReturnType('static')
             ->setBody(sprintf('$this->%s = $%s;%sreturn $this;', $propertyName, $propertyName, "\n\n"))
             ->addParameter($propertyName)

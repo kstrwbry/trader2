@@ -14,15 +14,6 @@ class Macd implements IndicatorInterface
 {
     use IndicatorTrait;
 
-    public function __construct(
-        /** @var $numbers MACDInterface[] */
-        array $numbers,
-    ) {
-        $this->numbers = $numbers;
-
-        $this->bulk();
-    }
-
     /**
      * @param IndicatorEntityInterface|MACDInterface $number
      * @param int $index

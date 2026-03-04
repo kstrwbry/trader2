@@ -8,7 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 trait StdDevConnectionTrait #implements StdDevConnectionInterface
 {
-    #[ORM\OneToOne(targetEntity: StdDevInterface::class, cascade: ['persist'])]
+    #[ORM\OneToOne(targetEntity: StdDevInterface::class, cascade:['persist'])]
     protected readonly StdDevInterface $stdDev;
 
     public function getStdDev(): StdDevInterface

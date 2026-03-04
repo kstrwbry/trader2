@@ -8,6 +8,7 @@ interface MACDInterface extends IndicatorEntityInterface
     public const ?string INDICATOR_NAME = 'MACD';
 
     public function __construct(
+        int                $id,
         KlineInterface     $kline,
         MACDInterface|null $prevEntity,
         int                $shortPeriod = 12,
@@ -31,6 +32,4 @@ interface MACDInterface extends IndicatorEntityInterface
     public function getSignalEMA(): float;
 
     public function setSignalEMA(float $signalEMA): static;
-
-    public function getCross(): int;
 }

@@ -16,4 +16,6 @@ interface SignalPropertyInterface
     public function setSignal(int $signal): int;
 
     public function calcSignal(): int;
+
+    public function getCross(): int;
 }

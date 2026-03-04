@@ -7,7 +7,6 @@ use App\Kstrwbry\BinanceTraderBundle\Interfaces\RSIInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\SignalPropertyInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\TraderConsts;
-use App\Kstrwbry\BinanceTraderBundle\Trait\IdTrait;
 use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorEntityTrait;
 use App\Kstrwbry\BinanceTraderBundle\Trait\SignalPropertyTrait;
 use Doctrine\ORM\Mapping as ORM;
@@ -15,18 +14,9 @@ use Doctrine\ORM\Mapping as ORM;
 abstract class RSI implements SignalPropertyInterface, RSIInterface
 {
     use
-        IdTrait,
         SignalPropertyTrait,
         IndicatorEntityTrait
     ;
-
-    #[ORM\OneToOne(targetEntity: RSIInterface::class, cascade: ['persist'], fetch: 'LAZY')]
-    protected RSIInterface|null $prevEntity = null;
-
-    public function getPrevEntity(): RSIInterface|null
-    {
-        return $this->prevEntity;
-    }
 
     #[ORM\Column(name:'period', type:'smallint', nullable:false, options:['default' => 14, 'unsigned' => true])]
     protected readonly int $period;
@@ -57,15 +47,18 @@ abstract class RSI implements SignalPropertyInterface, RSIInterface
     protected float $rsi = 0.0;
 
     public function __construct(
+        int               $id,
         KlineInterface    $kline,
         RSIInterface|null $prevEntity,
         int               $period = 14,
         float             $lowerSignalLine = 30,
         float             $upperSignalLine = 70,
     ) {
-        $this->kline      = $kline;
-        $this->prevEntity = $prevEntity;
-        $this->period     = $period;
+        $this->id           = $id;
+        $this->kline        = $kline;
+        $this->prevEntity   = $prevEntity;
+        $this->prevEntityId = $prevEntity?->getId();
+        $this->period       = $period;
 
         $this->lowerSignalLine = $lowerSignalLine;
         $this->upperSignalLine = $upperSignalLine;

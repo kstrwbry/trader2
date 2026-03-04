@@ -7,7 +7,6 @@ use App\Kstrwbry\BinanceTraderBundle\Interfaces\MACDInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\SignalPropertyInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\TraderConsts;
-use App\Kstrwbry\BinanceTraderBundle\Trait\IdTrait;
 use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorEntityTrait;
 use App\Kstrwbry\BinanceTraderBundle\Trait\SignalPropertyTrait;
 use Doctrine\ORM\Mapping as ORM;
@@ -15,18 +14,9 @@ use Doctrine\ORM\Mapping as ORM;
 abstract class MACD implements SignalPropertyInterface, MACDInterface
 {
     use
-        IdTrait,
         SignalPropertyTrait,
         IndicatorEntityTrait
     ;
-
-    #[ORM\OneToOne(targetEntity: MACDInterface::class, cascade: ['persist'], fetch: 'LAZY')]
-    protected MACDInterface|null $prevEntity = null;
-
-    public function getPrevEntity(): MACDInterface|null
-    {
-        return $this->prevEntity;
-    }
 
     #[ORM\Column(name:'short_ema', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected readonly float $shortEMA;
@@ -45,22 +35,23 @@ abstract class MACD implements SignalPropertyInterface, MACDInterface
     protected readonly int $signalPeriod;
     #[ORM\Column(name:'close', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected readonly float $close;
-    #[ORM\Column(name:'"cross"', type:'signal', nullable:false, options:['default' => 0])]
-    protected int $cross = 0;
 
     public function __construct(
+        int                $id,
         KlineInterface     $kline,
         MACDInterface|null $prevEntity,
         int                $shortPeriod = 12,
         int                $longPeriod = 26,
         int                $signalPeriod = 9,
     ) {
-        $this->kline       = $kline;
-        $this->prevEntity  = $prevEntity;
-        $this->shortPeriod = $shortPeriod;
-        $this->longPeriod  = $longPeriod;
-        $this->signalPeriod  = $signalPeriod;
-        $this->close       = $kline->getClose();
+        $this->id           = $id;
+        $this->kline        = $kline;
+        $this->prevEntity   = $prevEntity;
+        $this->prevEntityId = $prevEntity?->getId();
+        $this->shortPeriod  = $shortPeriod;
+        $this->longPeriod   = $longPeriod;
+        $this->signalPeriod = $signalPeriod;
+        $this->close        = $kline->getClose();
     }
 
     public function getShortPeriod(): int
@@ -127,11 +118,6 @@ abstract class MACD implements SignalPropertyInterface, MACDInterface
         return $this;
     }
 
-    public function getCross(): int
-    {
-        return $this->cross;
-    }
-
     public function getPeriod(): int
     {
         return $this->getLongPeriod();
@@ -152,6 +138,15 @@ abstract class MACD implements SignalPropertyInterface, MACDInterface
      */
     public function calcIndicator(): float
     {
+        if(
+            !$this->getPrevEntity()
+            || $this->getShortPeriod() > ($this->getKline()->getRunIndex() + 1)
+            || $this->getLongPeriod() > ($this->getKline()->getRunIndex() + 1)
+            || $this->getSignalPeriod() > ($this->getKline()->getRunIndex() + 1)
+        ) {
+            return $this->cross = TraderConsts::MACD_EVEN;
+        }
+
         return $this->cross = $this->macd <=> $this->getSignalEMA();
     }
 

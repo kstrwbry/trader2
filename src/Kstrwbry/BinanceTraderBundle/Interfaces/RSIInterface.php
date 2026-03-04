@@ -8,12 +8,11 @@ interface RSIInterface extends IndicatorEntityInterface
     public const ?string INDICATOR_NAME = 'RSI';
 
     public function __construct(
+        int               $id,
         KlineInterface    $kline,
         RSIInterface|null $prevEntity,
         int               $period = 14
     );
-
-    public function getPrevEntity(): RSIInterface|null;
 
     public function setGainSum(float $gainSum): static;
 

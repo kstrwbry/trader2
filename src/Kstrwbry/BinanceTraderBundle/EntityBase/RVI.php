@@ -8,7 +8,6 @@ use App\Kstrwbry\BinanceTraderBundle\Interfaces\SignalPropertyInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\StdDevInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\TraderConsts;
-use App\Kstrwbry\BinanceTraderBundle\Trait\IdTrait;
 use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorEntityTrait;
 use App\Kstrwbry\BinanceTraderBundle\Trait\SignalPropertyTrait;
 use Doctrine\ORM\Mapping as ORM;
@@ -17,26 +16,15 @@ use App\Kstrwbry\BinanceTraderBundle\Trait\StdDevConnectionTrait;
 abstract class RVI implements SignalPropertyInterface, RVIInterface
 {
     use
-        IdTrait,
         SignalPropertyTrait,
         IndicatorEntityTrait,
         StdDevConnectionTrait
     ;
 
-    #[ORM\OneToOne(targetEntity: RVIInterface::class, cascade: ['persist'], fetch: 'LAZY')]
-    protected RVIInterface|null $prevEntity = null;
-
-    public function getPrevEntity(): RVIInterface|null
-    {
-        return $this->prevEntity;
-    }
-
     #[ORM\Column(name:'period', type:'smallint', nullable:false, options:['default' => 14, 'unsigned' => true])]
     protected readonly int $period;
     #[ORM\Column(name:'close', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected readonly float $close;
-    #[ORM\Column(name:'"cross"', type:'signal', nullable:false, options:['default' => 0])]
-    protected int $cross = 0;
 
     #[ORM\Column(name:'upper_signal', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected readonly float $upperSignalLine;
@@ -56,6 +44,7 @@ abstract class RVI implements SignalPropertyInterface, RVIInterface
     protected float $rvi = 0.0;
 
     public function __construct(
+        int               $id,
         KlineInterface    $kline,
         StdDevInterface   $stdDev,
         RVIInterface|null $prevEntity,
@@ -63,11 +52,15 @@ abstract class RVI implements SignalPropertyInterface, RVIInterface
         float             $lowerSignalLine = 30,
         float             $upperSignalLine = 70,
     ) {
-        $this->kline      = $kline;
-        $this->stdDev     = $stdDev;
-        $this->prevEntity = $prevEntity;
-        $this->period     = $period;
-        $this->close      = $kline->getClose();
+        $this->id           = $id;
+        $this->kline        = $kline;
+        $this->stdDev       = $stdDev;
+        $this->prevEntity   = $prevEntity;
+        $this->prevEntityId = $prevEntity?->getId();
+
+        $this->period = $period;
+        $this->close  = $kline->getClose();
+
         $this->lowerSignalLine = $lowerSignalLine;
         $this->upperSignalLine = $upperSignalLine;
 
@@ -139,11 +132,6 @@ abstract class RVI implements SignalPropertyInterface, RVIInterface
     public function getLowerEMA(): float
     {
         return $this->lowerEMA;
-    }
-
-    public function getCross(): int
-    {
-        return $this->cross;
     }
 
     private function calcRVI(): void

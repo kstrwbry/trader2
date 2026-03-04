@@ -10,6 +10,7 @@ kstrwbry_dto:
             indicatorConfig: array
             builder: '\App\EntityBuilder\EntityBuilderBase'
             prev_entity: '\App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface|null'
+            outdated_entity: '\App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface|null'
             indicator_dependencies: array #'\App\DTO\IndicatorDTO'
         KlineRaw:
             run_index: int
@@ -55,3 +56,19 @@ kstrwbry_dto:
             signal_period: int
         StdDev:
             period: int
+        exchangeInfo:
+            symbol: string
+            currentPrice: float
+            minQty: float               # like 0.10000000 ADA
+            stepSize: float             # like 0.10000000 ADA
+            precision: int              # like 1 for ADA, 8 for BTC
+            baseAsset: string           # like BTC or ADA
+            quoteAsset: string          # like EUR or USDC
+            baseAssetAvailable: float   # amount of BTC or ADA
+            quoteAssetAvailable: float  # amount of EUR or USDC
+            quantityToBuy: float        # calculated amount of ADA or BTC to buy
+            quoteAssetToBuy: float      # calculated amount of ADA or BTC to buy in USDC or EUR
+            quantityToSell: float       # amount of ADA or BTC to sell
+            percentageToSpend: float
+            lastBuyTradePrice: float
+            lastSellTradePrice: float

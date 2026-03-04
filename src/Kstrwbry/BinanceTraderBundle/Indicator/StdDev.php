@@ -26,15 +26,6 @@ class StdDev implements IndicatorInterface
 {
     use IndicatorTrait;
 
-    public function __construct(
-        /** @var $numbers StdDevInterface[] */
-        array $numbers,
-    ) {
-        $this->numbers = $numbers;
-
-        $this->bulk();
-    }
-
     /**
      * @param IndicatorEntityInterface|StdDevInterface $number
      * @param int $index
@@ -59,6 +50,7 @@ class StdDev implements IndicatorInterface
         $price = $number->getClose();
 
         // Get previous entity to determine price movement direction
+        /** @var StdDevInterface|null $prevEntity */
         $prevEntity = $number->getPrevEntity();
         $prevPrice = $prevEntity?->getClose() ?? 0.0;
 
@@ -67,7 +59,8 @@ class StdDev implements IndicatorInterface
         $priceLower = $prevPrice > $price ? $price : 0.0;
 
         // Get outdated entity to shift out of the rolling window
-        $outdatedEntity = $this->getOutdatedEntity($index, $period);
+        /** @var StdDevInterface $outdatedEntity */
+        $outdatedEntity = $number->getOutdatedEntity();
         $outdatedPrice = $outdatedEntity?->getClose() ?? 0.0;
 
         $outdatedPrevPrice = $outdatedEntity?->getPrevEntity()?->getClose() ?? 0.0;
@@ -122,24 +115,12 @@ class StdDev implements IndicatorInterface
      */
     private function calcEMA(StdDevInterface $number): void
     {
+        /** @var StdDevInterface|null $prevEntity */
+        $prevEntity = $number->getPrevEntity();
         $number->setEmaLower(EMA::calcSingle(
             $number->getClose(),
             $number->getPeriod(),
-            $number->getPrevEntity()?->getEmaLower() ?? 0.0
+            $prevEntity?->getEmaLower() ?? 0.0
         ));
-    }
-
-    /**
-     * Helper to get the entity that should be shifted out of the rolling window.
-     * This is the entity at position (index - period) in the collection.
-     */
-    private function getOutdatedEntity(int $index, int $period): ?StdDevInterface
-    {
-        $outdatedIndex = $index - $period;
-        if($outdatedIndex < 0) {
-            return null;
-        }
-
-        return $this->numbers[$outdatedIndex];
     }
 }

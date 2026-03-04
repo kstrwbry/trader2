@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\Kstrwbry\BinanceTraderBundle\Interfaces;
 
-interface IndicatorBaseInterface
+interface IndicatorBaseInterface extends IdInterface
 {
     public function getPeriod(): int;
     public function getAvg(): float;

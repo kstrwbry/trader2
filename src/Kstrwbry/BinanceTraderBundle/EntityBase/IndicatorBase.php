@@ -3,23 +3,13 @@ declare(strict_types=1);
 
 namespace App\Kstrwbry\BinanceTraderBundle\EntityBase;
 
+use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorEntityTrait;
 use Doctrine\ORM\Mapping as ORM;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorBaseInterface;
-use App\Kstrwbry\BinanceTraderBundle\Trait\IdTrait;
-use App\Kstrwbry\BinanceTraderBundle\Trait\KlineConnectionTrait;
 
 abstract class IndicatorBase implements IndicatorBaseInterface
 {
-    use
-        IdTrait,
-        KlineConnectionTrait
-    ;
-
-    #[ORM\OneToOne(targetEntity: IndicatorBaseInterface::class, cascade: ['persist'])]
-    protected IndicatorBaseInterface|null $prevEntity = null;
-
-    #[ORM\OneToOne(targetEntity: IndicatorBaseInterface::class, cascade: ['persist'])]
-    protected IndicatorBaseInterface|null $outdatedEntity = null;
+    use IndicatorEntityTrait;
 
     #[ORM\Column(name:'close', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected readonly float $close;
@@ -58,7 +48,8 @@ abstract class IndicatorBase implements IndicatorBaseInterface
         float $ema,
         float $sma,
     ) {
-        $this->prevEntity = $prevEntity;
+        $this->prevEntity   = $prevEntity;
+        $this->prevEntityId = $prevEntity?->getId();
 
         $this->close  = $close;
         $this->period = $period;
@@ -71,11 +62,6 @@ abstract class IndicatorBase implements IndicatorBaseInterface
         $this->cma = $cma;
         $this->ema = $ema;
         $this->sma = $sma;
-    }
-
-    public function getPrevEntity(): IndicatorBaseInterface|null
-    {
-        return $this->prevEntity;
     }
 
     public function getClose(): float

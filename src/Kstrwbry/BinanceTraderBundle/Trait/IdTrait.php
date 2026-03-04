@@ -8,7 +8,11 @@ use Doctrine\ORM\Mapping as ORM;
 trait IdTrait
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(name:'id', type:'bigint', nullable:false, options:['unsigned' => true])]
+    #[ORM\Column(name:'id', type:'bigint', nullable:false, options:['unsigned' => true], columnDefinition:'BIGSERIAL')]
     protected ?int $id = null;
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
 }

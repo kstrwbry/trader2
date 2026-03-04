@@ -24,15 +24,6 @@ class Rvi implements IndicatorInterface
 {
     use IndicatorTrait;
 
-    public function __construct(
-        /** @var $numbers RVIInterface[] */
-        array $numbers,
-    ) {
-        $this->numbers = $numbers;
-
-        $this->bulk();
-    }
-
     /**
      * @param IndicatorEntityInterface|RVIInterface $number
      * @param int $index
@@ -64,13 +55,14 @@ class Rvi implements IndicatorInterface
         $currentLowerEMA = $number->getLowerEMA();
 
         // Get previous entity's sums to build upon
+        /** @var RVIInterface $prevEntity */
         $prevEntity = $number->getPrevEntity();
         $prevUpperSum = $prevEntity?->getUpperEMASum() ?? 0.0;
         $prevLowerSum = $prevEntity?->getLowerEMASum() ?? 0.0;
 
         // Get the outdated entity to shift out of the rolling window
-        $period = $number->getPeriod();
-        $outdatedEntity = $this->getOutdatedEntity($index, $period);
+        /** @var RVIInterface $outdatedEntity */
+        $outdatedEntity = $this->getOutdatedEntity($index);
         $outdatedUpperEMA = $outdatedEntity?->getUpperEMA() ?? 0.0;
         $outdatedLowerEMA = $outdatedEntity?->getLowerEMA() ?? 0.0;
 
@@ -86,19 +78,5 @@ class Rvi implements IndicatorInterface
         // NOTE: We do NOT calculate the final RVI value here. That's the entity's
         // responsibility in its calcIndicator() method, which will be called by
         // Strategy::addKline() immediately after this.
-    }
-
-    /**
-     * Helper to get the entity that should be shifted out of the rolling window.
-     * This is the entity at position (index - period) in the collection.
-     */
-    private function getOutdatedEntity(int $index, int $period): ?RVIInterface
-    {
-        $outdatedIndex = $index - $period;
-        if($outdatedIndex < 0) {
-            return null;
-        }
-
-        return $this->numbers[$outdatedIndex];
     }
 }

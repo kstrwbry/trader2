@@ -9,7 +9,6 @@ use App\Logger\KlineLogger;
 use App\Strategy\Strategy;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -24,7 +23,6 @@ class ImportTestDataCommand extends Command
     private array $symbolIndex = [];
 
     public function __construct(
-        private readonly LoggerInterface        $logger,
         private readonly EntityManagerInterface $em,
         private readonly EntityBuilderFactory   $entityBuilderFactory,
         private readonly array                  $traderConfig,
@@ -48,7 +46,7 @@ class ImportTestDataCommand extends Command
         InputInterface  $input,
         OutputInterface $output
     ): int {
-        $symbol = 'ADAUSDT';
+        $symbol = 'ADAUSDC';
 
         $strategyConfig = current($this->traderConfig['trader_strategy']);
 
@@ -57,13 +55,12 @@ class ImportTestDataCommand extends Command
         // Initialise one Strategy per symbol — this sets up all configured
         // indicators (EntityBuilders + Indicator services) for the stream.
         $strategy = new Strategy(
-            $this->logger,
             $symbol,
             $this->entityBuilderFactory,
             $strategyConfig['indicators'],
         );
 
-        $klineLogger = new KlineLogger($this->em, $this->logger);
+        $klineLogger = new KlineLogger($this->em);
 
         $testdata = json_decode(file_get_contents('testdata.json'), true);
 
@@ -81,31 +78,22 @@ class ImportTestDataCommand extends Command
                 false,
             );
 
-            if (($index+1) % $bulkFlush === 0) {
-                $flushStartTime = microtime(true);
-                $runtime = microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'];
-                $this->logger->info(sprintf('Flushing %d - memory %s - runtime %d', $index, $this->formatBytes(memory_get_usage()), $runtime));
+            if ($index % $bulkFlush === 0) {
                 $this->em->flush();
 
-                if(++$flushIndex % 3 === 0) {
-                    $this->logger->notice('Calling entity manager flush');
+                if($flushIndex++ % 10 === 0) {
                     $this->em->clear();
                     gc_collect_cycles();
+                    $this->notice($index);
                 }
-
-                $unitOfWorkSizte = $this->em->getUnitOfWork()->size();
-                $this->logger->notice(sprintf('UnitOfWork size after flush: %d', $unitOfWorkSizte));
-
-                $this->logger->info(sprintf('Flush completed - flush time %d seconds', microtime(true) - $flushStartTime));
             }
         }
 
 
         if (($index+1) % $bulkFlush === 0) {
-            $runtime = microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'];
-            $this->logger->info(sprintf('Flushing %d - memory %s - runtime %d', $index, $this->formatBytes(memory_get_usage()), $runtime));
             $this->em->flush();
             $this->em->clear();
+            $this->notice($index);
         }
 
         return Command::SUCCESS;
@@ -118,7 +106,25 @@ class ImportTestDataCommand extends Command
             $bytes /= 1024;
             $i++;
         }
-        return round($bytes, 2) . ' ' . $units[$i];
+        return number_format($bytes, 2, '.', '') . ' ' . $units[$i];
+    }
+
+    private function notice(int $index): void
+    {
+        $runtime = str_pad(
+            number_format(microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'], 2, '.', ''),
+            7,
+            ' ',
+            STR_PAD_LEFT,
+        );
+
+        print_r(sprintf(
+            'peak: %s | mem: %s | index: %s | runtime: %s s',
+            $this->formatBytes(memory_get_peak_usage()),
+            $this->formatBytes(memory_get_usage()),
+            str_pad((string)$index, 7, ' ', STR_PAD_LEFT),
+            $runtime,
+        ) . PHP_EOL);
     }
 
     private function mapChartAndSymbolToKlinerawDto(array $chart, int $runIndex): KlinerawDTO
@@ -128,7 +134,7 @@ class ImportTestDataCommand extends Command
             $chart,
         );
 
-        return (new KlinerawDTO())
+        return new KlinerawDTO()
             ->setStartTime($chart['t'])
             ->setStartTimeDate($this->timestampToDate($chart['t']))
             ->setCloseTime($chart['T'])
@@ -158,59 +164,6 @@ class ImportTestDataCommand extends Command
             ->setTakerBuyQuoteAssetVolume($chart['Q'])
             ->setTakerBuyQuoteAssetVolumeFloat((float)$chart['Q'])
             ->setRunIndex($runIndex);
-    }
-
-    private function dumpData()
-    {
-        $fp = fopen('testdata.json', 'rb');
-
-        $chunkSize = 4096;
-        $buffer = '';
-        $depth = 0;
-        $inString = false;
-        $escape = false;
-
-        while (!feof($fp)) {
-            $buffer .= fread($fp, $chunkSize);
-
-            $start = null;
-            $len = strlen($buffer);
-
-            for ($i = 0; $i < $len; $i++) {
-                $ch = $buffer[$i];
-
-                if ($inString) {
-                    if ($escape) $escape = false;
-                    elseif ($ch === '\\') $escape = true;
-                    elseif ($ch === '"') $inString = false;
-                    continue;
-                }
-
-                if ($ch === '"') {
-                    $inString = true;
-                } elseif ($ch === '{') {
-                    if ($depth === 0) $start = $i;
-                    $depth++;
-                } elseif ($ch === '}') {
-                    $depth--;
-                    if ($depth === 0 && $start !== null) {
-                        $json = substr($buffer, $start, $i - $start + 1);
-                        $data = json_decode($json, true);
-
-                        // process dataset
-                        var_dump($data);
-                        die();
-
-                        $buffer = substr($buffer, $i + 1);
-                        $i = -1;
-                        $len = strlen($buffer);
-                        $start = null;
-                    }
-                }
-            }
-        }
-
-        fclose($fp);
     }
 
     private function timestampToDate(int|string $timestamp): DateTime

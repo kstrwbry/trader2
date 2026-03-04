@@ -14,15 +14,6 @@ class RSI implements IndicatorInterface
 {
     use IndicatorTrait;
 
-    public function __construct(
-        /** @var $numbers RSIInterface[] */
-        array $numbers
-    ) {
-        $this->numbers = $numbers;
-
-        $this->bulk();
-    }
-
     /**
      * @param IndicatorEntityInterface|RSIInterface $number
      * @param int $index
@@ -42,7 +33,7 @@ class RSI implements IndicatorInterface
         $outdatedIndex = $index-$number->getPeriod();
 
         /** @var KlineInterface|null $outdatedKline */
-        $outdatedKline = $this->numbers->get($outdatedIndex)?->getKline();
+        $outdatedKline = $this->numbers[$outdatedIndex]?->getKline();
 
         $outdatedGain = $outdatedKline?->getGain() ?? 0.0;
         $outdatedLoss = $outdatedKline?->getLoss() ?? 0.0;

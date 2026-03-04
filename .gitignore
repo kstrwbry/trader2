@@ -343,3 +343,5 @@ $RECYCLE.BIN/
 !/vendor/kstrwbry/*
 ###< symfony/framework-bundle ###
 ca.pem
+testdata.json
+trade.log

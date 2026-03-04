@@ -5,7 +5,6 @@ namespace App\Kstrwbry\BinanceTraderBundle\EntityBase;
 
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\StdDevInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
-use App\Kstrwbry\BinanceTraderBundle\Trait\IdTrait;
 use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorEntityTrait;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -15,20 +14,7 @@ use Doctrine\ORM\Mapping as ORM;
  */
 abstract class StdDev implements StdDevInterface
 {
-    use
-        IdTrait,
-        IndicatorEntityTrait
-    ;
-
-    #[ORM\OneToOne(targetEntity: StdDevInterface::class, cascade: ['persist'], fetch: 'LAZY')]
-    protected StdDevInterface|null $prevEntity = null;
-    #[ORM\OneToOne(targetEntity: StdDevInterface::class, cascade: ['persist'], fetch: 'LAZY')]
-    protected StdDevInterface|null $outdatedStdDev = null;
-
-    public function getPrevEntity(): StdDevInterface|null
-    {
-        return $this->prevEntity;
-    }
+    use IndicatorEntityTrait;
 
     #[ORM\Column(name:'period', type:'smallint', nullable:false, options:['default' => 14, 'unsigned' => true])]
     protected readonly int $period;
@@ -40,13 +26,11 @@ abstract class StdDev implements StdDevInterface
 
     #[ORM\Column(name:'std_dev_sum', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected float $sum = 0.0;
-
     #[ORM\Column(name:'std_dev_avg', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected float $avg = 0.0;
 
     #[ORM\Column(name:'std_dev_sum_upper', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected float $sumUpper = 0.0;
-
     #[ORM\Column(name:'std_dev_sum_lower', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected float $sumLower = 0.0;
 
@@ -56,14 +40,18 @@ abstract class StdDev implements StdDevInterface
     protected float $emaLower = 0.0;
 
     public function __construct(
+        int                  $id,
         KlineInterface       $kline,
         StdDevInterface|null $lastStdDev,
         StdDevInterface|null $outdatedStdDev,
         int                  $period = 14
     ) {
-        $this->kline          = $kline;
-        $this->prevEntity     = $lastStdDev;
-        $this->outdatedStdDev = $outdatedStdDev;
+        $this->id               = $id;
+        $this->kline            = $kline;
+        $this->prevEntityId     = $lastStdDev?->getId();
+        $this->prevEntity       = $lastStdDev;
+        $this->outdatedEntityId = $outdatedStdDev?->getId();
+        $this->outdatedEntity   = $outdatedStdDev;
 
         $this->period = $period;
         $this->close  = $kline->getClose();

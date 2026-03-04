@@ -9,6 +9,7 @@ use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\StdDevInterface;
 use App\Kstrwbry\DtoBundle\Interfaces\DTOInterface;
+use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * Stateful internal builder for StdDev entities.
@@ -20,16 +21,19 @@ class StdDevBuilder extends EntityBuilderBase
 {
     protected DTOInterface|StddevDTO $config;
 
+    protected string $entityClass = StdDev::class;
+
     /** @var array<StdDev> */
     private array $arrStdDev = [];
 
     public function __construct(
         DTOInterface $config,
         array $indicatorDependencies,
+        EntityManagerInterface $em,
     ) {
         $this->validateConfigClass($config, StddevDTO::class);
 
-        parent::__construct($config, $indicatorDependencies);
+        parent::__construct($config, $indicatorDependencies, $em);
     }
 
     public function build(
@@ -47,7 +51,13 @@ class StdDevBuilder extends EntityBuilderBase
             $outdatedStdDev = array_shift($this->arrStdDev);
         }
 
-        $stdDev = new StdDev($kline, $lastStdDev, $outdatedStdDev, $this->config->getPeriod());
+        $stdDev = new StdDev(
+            $this->getNextId($kline->isClosed()),
+            $kline,
+            $lastStdDev,
+            $outdatedStdDev,
+            $this->config->getPeriod(),
+        );
 
         $this->arrStdDev[] = $stdDev;
 

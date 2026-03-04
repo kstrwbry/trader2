@@ -10,7 +10,7 @@ services:
         exclude:
             - '../../{DependencyInjection,Entity,Strategy}'
             - '../src/Entity/'
-            - '../src/EntityBuilder/'
+#            - '../src/EntityBuilder/'
             - '../src/Strategy/'
             - '../src/Kernel.php'
             - '../src/Kstrwbry/**/*'

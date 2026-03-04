@@ -8,6 +8,7 @@ interface StdDevInterface extends IndicatorEntityInterface
     public const ?string INDICATOR_NAME = 'StdDev';
 
     public function __construct(
+        int                  $id,
         KlineInterface       $kline,
         StdDevInterface|null $lastStdDev,
         StdDevInterface|null $outdatedStdDev,

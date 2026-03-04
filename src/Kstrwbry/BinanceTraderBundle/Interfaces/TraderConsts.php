@@ -12,4 +12,8 @@ interface TraderConsts
     public const int SIGNAL_NEUTRAL = 0;
     public const int SIGNAL_BUY     = 1;
     public const int SIGNAL_SELL    = -1;
+
+    public const int CROSS_NEUTRAL = 0;
+    public const int CROSS_UP      = 1;
+    public const int CROSS_DOWN    = -1;
 }

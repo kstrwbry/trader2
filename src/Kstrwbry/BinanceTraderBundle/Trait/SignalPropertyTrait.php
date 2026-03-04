@@ -10,6 +10,9 @@ trait SignalPropertyTrait #implements SignalInterface
     #[ORM\Column(name:'signal', type:'signal', nullable:false, options:['default' => 0])]
     protected int $signal = 0;
 
+    #[ORM\Column(name:'"cross"', type:'signal', nullable:false, options:['default' => 0])]
+    protected int $cross = 0;
+
     public function getSignal(): int
     {
         return $this->signal <=> 0;
@@ -21,4 +24,9 @@ trait SignalPropertyTrait #implements SignalInterface
     }
 
     abstract public function calcSignal(): int;
+
+    public function getCross(): int
+    {
+        return $this->cross <=> 0;
+    }
 }

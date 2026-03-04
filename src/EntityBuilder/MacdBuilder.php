@@ -7,20 +7,25 @@ use App\DTO\MacdDTO;
 use App\Entity\Macd;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
+use App\Kstrwbry\BinanceTraderBundle\Interfaces\MACDInterface;
 use App\Kstrwbry\DtoBundle\Interfaces\DTOInterface;
+use Doctrine\ORM\EntityManagerInterface;
 
 class MacdBuilder extends EntityBuilderBase
 {
     protected DTOInterface|MacdDTO $config;
 
+    protected string $entityClass = Macd::class;
+
     /** {@inheritdoc} */
     public function __construct(
         DTOInterface $config,
         array $indicatorDependencies,
+        EntityManagerInterface $em,
     ) {
         $this->validateConfigClass($config, MacdDTO::class);
 
-        parent::__construct( $config, $indicatorDependencies);
+        parent::__construct( $config, $indicatorDependencies, $em);
     }
 
     /**
@@ -30,12 +35,14 @@ class MacdBuilder extends EntityBuilderBase
         KlineInterface $kline,
         IndicatorEntityInterface|null $prevEntity,
         array $indicatorDependencies,
-    ): IndicatorEntityInterface {
+    ): MACDInterface {
         return new Macd(
+            $this->getNextId($kline->isClosed()),
             $kline,
             $prevEntity,
             $this->config->getShortPeriod(),
             $this->config->getLongPeriod(),
+            $this->config->getSignalPeriod(),
         );
     }
 }
