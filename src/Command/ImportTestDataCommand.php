@@ -9,11 +9,14 @@ use App\Logger\KlineLogger;
 use App\Strategy\Strategy;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
+use SplFileObject;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+
+use function json_decode;
 
 //TODO: CRON JOB
 #[AsCommand(name: 'binance:import:testdata')]
@@ -22,11 +25,18 @@ class ImportTestDataCommand extends Command
     /** Running kline index per symbol, used as the KlineRaw sequence number. */
     private array $symbolIndex = [];
 
+    protected array $outdatedEntities = [];
+
+    private readonly string $run;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly EntityBuilderFactory   $entityBuilderFactory,
+        private readonly KlineLogger            $klineLogger,
         private readonly array                  $traderConfig,
     ) {
+        $this->run = uniqid('run_');
+
         parent::__construct();
     }
 
@@ -46,30 +56,29 @@ class ImportTestDataCommand extends Command
         InputInterface  $input,
         OutputInterface $output
     ): int {
-        $symbol = 'ADAUSDC';
-
+        $strategies = [];
         $strategyConfig = current($this->traderConfig['trader_strategy']);
+        $bulkFlush = 500;
+        $file = new SplFileObject('testdata.ndjson');
 
-        $this->symbolIndex[$symbol] = 0;
+        for ($index = 0; !$file->eof(); $index++) {
+            $line = trim($file->fgets());
+            if ($line === '') {
+                continue;
+            }
 
-        // Initialise one Strategy per symbol — this sets up all configured
-        // indicators (EntityBuilders + Indicator services) for the stream.
-        $strategy = new Strategy(
-            $symbol,
-            $this->entityBuilderFactory,
-            $strategyConfig['indicators'],
-        );
+            $chart = json_decode($line, true, 512, JSON_THROW_ON_ERROR);
+            $symbol = $chart['s'];
 
-        $klineLogger = new KlineLogger($this->em);
+            $this->symbolIndex[$symbol] ??= 0;
 
-        $testdata = json_decode(file_get_contents('testdata.json'), true);
+            $strategy = $strategies[$symbol] ??= new Strategy(
+                $symbol,
+                $this->entityBuilderFactory,
+                $strategyConfig['indicators'],
+            );
 
-        $bulkFlush = 100;
-        $index = 0;
-        $flushIndex = 0;
-
-        foreach ($testdata as $index => $chart) {
-            $klineLogger->logKline(
+            $this->klineLogger->logKline(
                 $this->mapChartAndSymbolToKlinerawDto(
                     (array)$chart,
                     $this->symbolIndex[$symbol]++,
@@ -78,31 +87,55 @@ class ImportTestDataCommand extends Command
                 false,
             );
 
-            if ($index % $bulkFlush === 0) {
-                $this->em->flush();
+            foreach($strategy->getIndicators() as $indicator) {
+                $entity = $indicator->getOutdatedEntity()?->getPrevEntity();
 
-                if($flushIndex++ % 10 === 0) {
-                    $this->em->clear();
-                    gc_collect_cycles();
-                    $this->notice($index);
+                if($entity) {
+                    $this->outdatedEntities[] = $entity;
                 }
+            }
+
+            if($index > $bulkFlush) {
+                $this->outdatedEntities[] = $strategy->getKline();
+            }
+
+            if($index > 1 && $index % $bulkFlush === 0) {
+                $this->flush();
+                $this->clear($index);
+                //return Command::SUCCESS;
             }
         }
 
 
-        if (($index+1) % $bulkFlush === 0) {
-            $this->em->flush();
-            $this->em->clear();
-            $this->notice($index);
+        if(($index+1) % $bulkFlush === 0) {
+            $this->flush();
+            $this->clear($index);
         }
 
         return Command::SUCCESS;
     }
 
+    protected function flush(): void
+    {
+        $this->em->flush();
+    }
+
+    protected function clear(int $index): void
+    {
+        $this->em->clear();
+
+        foreach($this->outdatedEntities as $entity) {
+            unset($entity);
+        }
+
+        $this->outdatedEntities = [];
+        $this->notice($index);
+    }
+
     private function formatBytes($bytes) {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
         $i = 0;
-        while ($bytes >= 1024 && $i < count($units) - 1) {
+        while($bytes >= 1024 && $i < count($units) - 1) {
             $bytes /= 1024;
             $i++;
         }
@@ -163,7 +196,9 @@ class ImportTestDataCommand extends Command
             ->setTakerBuyBaseAssetVolumeFloat((float)$chart['V'])
             ->setTakerBuyQuoteAssetVolume($chart['Q'])
             ->setTakerBuyQuoteAssetVolumeFloat((float)$chart['Q'])
-            ->setRunIndex($runIndex);
+            ->setRunIndex($runIndex)
+            ->setRun($this->run)
+        ;
     }
 
     private function timestampToDate(int|string $timestamp): DateTime

@@ -7,10 +7,9 @@ use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\RSIInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
-use Doctrine\Common\Collections\ArrayCollection;
 use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorTrait;
 
-class RSI implements IndicatorInterface
+class Rsi implements IndicatorInterface
 {
     use IndicatorTrait;
 
@@ -28,12 +27,11 @@ class RSI implements IndicatorInterface
     private function calcRSI(int $index, RSIInterface $number): void
     {
         $kline = $number->getKline();
+        /** @var RSIInterface $prev */
         $prev = $number->getPrevEntity();
 
-        $outdatedIndex = $index-$number->getPeriod();
-
         /** @var KlineInterface|null $outdatedKline */
-        $outdatedKline = $this->numbers[$outdatedIndex]?->getKline();
+        $outdatedKline = $number->getOutdatedEntity()?->getKline();
 
         $outdatedGain = $outdatedKline?->getGain() ?? 0.0;
         $outdatedLoss = $outdatedKline?->getLoss() ?? 0.0;
@@ -44,6 +42,20 @@ class RSI implements IndicatorInterface
         $number->setGainSum($prevGainSum - $outdatedGain + $kline->getGain());
         $number->setLossSum($prevLossSum - $outdatedLoss + $kline->getLoss());
 
-        $number->calcIndicator();
+        $period = min($number->getKline()->getRunIndex() + 1, $number->getPeriod());
+
+        $number->setAvgGain($this->calcAvg($number->getGainSum(), $period));
+        $number->setAvgLoss($this->calcAvg($number->getLossSum(), $period));
+    }
+
+    private function calcAvg(
+        float $sum,
+        int $period
+    ): float {
+        if(0.0 >= $sum || 0 === $period) {
+            return 0.0;
+        }
+
+        return $sum / (float)$period;
     }
 }

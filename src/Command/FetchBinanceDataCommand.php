@@ -11,13 +11,17 @@ use App\Trader\Trader;
 use Binance\API;
 use Binance\API as BinanceAPI;
 use DateTime;
-use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
+use Doctrine\ORM\EntityManagerInterface;
+use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\InvalidOptionException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Lock\LockFactory;
+use Symfony\Component\Lock\LockInterface;
+use Symfony\Component\Lock\Store\PdoStore;
 
 use function array_diff;
 use function array_keys;
@@ -30,10 +34,13 @@ use function implode;
 #[AsCommand(name: 'binance:data:fetch')]
 class FetchBinanceDataCommand extends Command
 {
-    private null|KlineInterface $lastKline = null;
-
     /** Running kline index per symbol, used as the KlineRaw sequence number. */
     private array $symbolIndex = [];
+
+    private LockFactory $lockFactory;
+    private ?LockInterface $lock = null;
+    private bool $noLock;
+    private bool $overrideLock;
 
     public function __construct(
         private readonly BinanceAPI             $binanceApiBlank,
@@ -41,14 +48,13 @@ class FetchBinanceDataCommand extends Command
         private readonly EntityBuilderFactory   $entityBuilderFactory,
         private readonly Trader                 $trader,
         private readonly KlineLogger            $klineLogger,
-        /**
-         * Full processed config from config/packages/binance-trader.yaml.
-         * Bound in services.yaml via '%kstrwbry_binance_trader%'.
-         * Shape: ['trader_strategy' => ['<name>' => ['stop_loss_condition' => int, 'indicators' => [...]]]]
-         */
+        private readonly EntityManagerInterface $em,
         private readonly array                  $traderConfig,
     ) {
         parent::__construct();
+
+        $store = new PdoStore($this->em->getConnection()->getNativeConnection());
+        $this->lockFactory = new LockFactory($store);
     }
 
     /** {@inheritDoc} */
@@ -60,6 +66,18 @@ class FetchBinanceDataCommand extends Command
             InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED,
             'like "ADAUSDT" or/and "BTCBNB"'
         );
+
+        $this->addOption(
+            'no-lock',
+            null,
+            InputOption::VALUE_NONE,
+        );
+
+        $this->addOption(
+            'override-lock',
+            null,
+            InputOption::VALUE_NONE,
+        );
     }
 
     /** {@inheritDoc} */
@@ -68,6 +86,8 @@ class FetchBinanceDataCommand extends Command
         OutputInterface $output
     ): int {
         $symbols = $input->getOption('symbols');
+        $this->noLock = $input->getOption('no-lock');
+        $this->overrideLock = $input->getOption('override-lock');
 
         $this->throwUnlessAllSymbolsAreValid($symbols);
 
@@ -75,38 +95,52 @@ class FetchBinanceDataCommand extends Command
         // TODO: allow selecting a strategy by name (e.g. via --strategy option).
         $strategyConfig = $this->resolveStrategyConfig();
 
-        foreach($symbols as $symbol) {
-            $this->symbolIndex[$symbol] = 0;
+        try {
+            foreach($symbols as $symbol) {
+                if(!$this->refreshLock($symbol)) {
+                    return Command::SUCCESS;
+                }
 
-            $this->test($symbol);
+                $this->symbolIndex[$symbol] = 0;
 
-            // Initialise one Strategy per symbol — this sets up all configured
-            // indicators (EntityBuilders + Indicator services) for the stream.
-            $strategy = new Strategy(
-                $symbol,
-                $this->entityBuilderFactory,
-                $strategyConfig['indicators'],
-            );
+                $this->test($symbol);
 
-            $this->binanceApiBlank->kline(
-                $symbol,
-                '1m',
-                function(BinanceAPI $api, string $symbol, mixed $chart) use ($strategy) {
-                    $chart = (array)$chart;
+                // Initialise one Strategy per symbol — this sets up all configured
+                // indicators (EntityBuilders + Indicator services) for the stream.
+                $strategy = new Strategy(
+                    $symbol,
+                    $this->entityBuilderFactory,
+                    $strategyConfig['indicators'],
+                );
 
-                    if (true === $chart['x']) {
-                        $this->symbolIndex[$symbol]++;
-                    }
+                $this->binanceApiBlank->kline(
+                    $symbol,
+                    '1m',
+                    function(BinanceAPI $api, string $symbol, mixed $chart) use ($strategy)
+                    {
+                        $chart = (array)$chart;
 
-                    $this->kline(
-                        $this->mapChartAndSymbolToKlinerawDto(
-                            $chart,
-                            $this->symbolIndex[$symbol],
-                        ),
-                        $strategy,
-                    );
-                },
-            );
+                        if(true === $chart['x']) {
+                            $this->symbolIndex[$symbol]++;
+                        }
+
+                        $this->kline(
+                            $this->mapChartAndSymbolToKlinerawDto(
+                                $chart,
+                                $this->symbolIndex[$symbol],
+                            ),
+                            $strategy,
+                        );
+
+                        $this->refreshLock($symbol);
+                    },
+                );
+            }
+        } finally {
+            $this->releaseLock();
+
+            $this->em->clear();
+            $this->em->getConnection()->close();
         }
 
         return Command::SUCCESS;
@@ -137,7 +171,7 @@ class FetchBinanceDataCommand extends Command
         $strategies = $this->traderConfig['trader_strategy'] ?? [];
 
         if(empty($strategies)) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 'No trader_strategy entries found in config/packages/binance-trader.yaml.'
             );
         }
@@ -219,6 +253,35 @@ class FetchBinanceDataCommand extends Command
         $seconds = substr((string)$timestamp, 0, 10);
 
         return new DateTime()->setTimestamp((int)$seconds);
+    }
+
+    private function refreshLock($symbol): bool
+    {
+        if($this->noLock) {
+            return true;
+        }
+
+        if($this->lock) {
+            $this->lock->refresh();
+            return true;
+        }
+
+        $this->lock = $this->lockFactory->createLock(
+            $this->getName() . $symbol,
+            180,
+            true
+        );
+
+        if(!$this->overrideLock && $this->lock->isAcquired()) {
+            return false;
+        }
+
+        return $this->lock->acquire();
+    }
+
+    private function releaseLock(): void
+    {
+        $this->lock?->release();
     }
 
     private function test(string $symbol): void

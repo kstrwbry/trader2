@@ -51,6 +51,7 @@ abstract class IndicatorBase implements IndicatorBaseInterface
         $this->prevEntity   = $prevEntity;
         $this->prevEntityId = $prevEntity?->getId();
 
+        $this->run    = $kline->getRun();
         $this->close  = $close;
         $this->period = $period;
 

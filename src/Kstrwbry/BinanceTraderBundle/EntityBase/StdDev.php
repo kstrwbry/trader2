@@ -8,6 +8,8 @@ use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
 use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorEntityTrait;
 use Doctrine\ORM\Mapping as ORM;
 
+use function sqrt;
+
 /**
  * Base entity for Standard Deviation (StdDev).
  * Used as a dependency of RVI — not a top-level indicator in the strategy config.
@@ -28,31 +30,38 @@ abstract class StdDev implements StdDevInterface
     protected float $sum = 0.0;
     #[ORM\Column(name:'std_dev_avg', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected float $avg = 0.0;
+    #[ORM\Column(name:'last_prices', type:'json', nullable:false)]
+    protected array $lastPrices = [];
 
     #[ORM\Column(name:'std_dev_sum_upper', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected float $sumUpper = 0.0;
     #[ORM\Column(name:'std_dev_sum_lower', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected float $sumLower = 0.0;
 
+    #[ORM\Column(name:'ema', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
+    protected float $ema = 0.0;
     #[ORM\Column(name:'ema_upper', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected float $emaUpper = 0.0;
     #[ORM\Column(name:'ema_lower', type:'float', nullable:false, options:['default' => 0, 'unsigned' => true])]
     protected float $emaLower = 0.0;
 
+    #[ORM\Column(name:'mode', type:'string', length:20, nullable:false, options:['default' => self::MODE_EMA])]
+    protected string $mode;
+
     public function __construct(
         int                  $id,
         KlineInterface       $kline,
-        StdDevInterface|null $lastStdDev,
-        StdDevInterface|null $outdatedStdDev,
-        int                  $period = 14
+        StdDevInterface|null $prevEntity,
+        int                  $period = 14,
+        string               $mode = self::MODE_EMA,
     ) {
-        $this->id               = $id;
-        $this->kline            = $kline;
-        $this->prevEntityId     = $lastStdDev?->getId();
-        $this->prevEntity       = $lastStdDev;
-        $this->outdatedEntityId = $outdatedStdDev?->getId();
-        $this->outdatedEntity   = $outdatedStdDev;
+        $this->id           = $id;
+        $this->kline        = $kline;
+        $this->prevEntityId = $prevEntity?->getId();
+        $this->prevEntity   = $prevEntity;
 
+        $this->run    = $kline->getRun();
+        $this->mode   = $mode;
         $this->period = $period;
         $this->close  = $kline->getClose();
     }
@@ -70,6 +79,17 @@ abstract class StdDev implements StdDevInterface
     public function getAvg(): float
     {
         return $this->avg;
+    }
+
+    public function getLastPrices(): array
+    {
+        return $this->lastPrices;
+    }
+
+    public function setLastPrices(array $lastPrices): static
+    {
+        $this->lastPrices = $lastPrices;
+        return $this;
     }
 
     public function setAvg(float $avg): static
@@ -122,6 +142,17 @@ abstract class StdDev implements StdDevInterface
         return $this;
     }
 
+    public function getEma(): float
+    {
+        return $this->ema;
+    }
+
+    public function setEma(float $ema): static
+    {
+        $this->ema = $ema;
+        return $this;
+    }
+
     public function getEmaLower(): float
     {
         return $this->emaLower;
@@ -144,20 +175,24 @@ abstract class StdDev implements StdDevInterface
         return $this;
     }
 
-    /**
-     * StdDev's real calculation lives entirely in Indicator\StdDev::calc(), which
-     * calls setSum(), setSumUpper(), setSumLower(), setAvg(), and setStdDev() on this
-     * entity directly. That Indicator class also calls calcIndicator() internally
-     * (before computing the final stdDev value).
-     *
-     * This entity is built internally by RviBuilder — it is NOT a top-level indicator
-     * in the strategy config, so Indicator\StdDev is not used in the current flow.
-     * All StdDev columns will therefore hold their default (0) values until a
-     * dedicated StdDev strategy entry or an alternative calculation path is wired up.
-     */
     public function calcIndicator(): float
     {
-        // Calculation is performed by Indicator\StdDev after construction.
-        return 0.0;
+        $period = $this->getPeriod();
+
+        if(
+            !$this->getPrevEntity()
+            || $period > ($this->getKline()->getRunIndex() + 1)
+        ) {
+            return $this->stdDev = 0.0;
+        }
+
+        $stdDevSum = 0.0;
+        $avg = $this->getAvg();
+
+        foreach ($this->getLastPrices() as $price) {
+            $stdDevSum += ($price - $avg) ** 2;
+        }
+
+        return $this->stdDev = sqrt($stdDevSum / $period);
     }
 }

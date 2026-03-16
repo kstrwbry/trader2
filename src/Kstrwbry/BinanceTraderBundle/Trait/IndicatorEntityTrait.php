@@ -52,12 +52,16 @@ trait IndicatorEntityTrait
     {
         $this->outdatedEntity = $outdatedEntity;
 
+        if($outdatedEntity) {
+            $this->outdatedEntityId = $outdatedEntity->getId();
+        }
+
         return $this;
     }
 
     public function __destruct()
     {
-        $this->setPrevEntity(null);
-        $this->setOutdatedEntity(null);
+        $this->prevEntity = null;
+        $this->outdatedEntity = null;
     }
 }

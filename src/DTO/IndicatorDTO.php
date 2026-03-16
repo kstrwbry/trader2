@@ -27,13 +27,13 @@ class IndicatorDTO extends \App\Kstrwbry\DtoBundle\Base\DtoBase
         ?\App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface $outdatedEntity = null,
         ?array $indicatorDependencies = null,
     ) {
-        if ($indicatorName !== null) $this->indicator_name = $indicatorName;
-        if ($indicator !== null) $this->indicator = $indicator;
-        if ($indicatorConfig !== null) $this->indicatorConfig = $indicatorConfig;
-        if ($builder !== null) $this->builder = $builder;
-        if ($prevEntity !== null) $this->prev_entity = $prevEntity;
-        if ($outdatedEntity !== null) $this->outdated_entity = $outdatedEntity;
-        if ($indicatorDependencies !== null) $this->indicator_dependencies = $indicatorDependencies;
+        if($indicatorName !== null) $this->indicator_name = $indicatorName;
+        if($indicator !== null) $this->indicator = $indicator;
+        if($indicatorConfig !== null) $this->indicatorConfig = $indicatorConfig;
+        if($builder !== null) $this->builder = $builder;
+        if($prevEntity !== null) $this->prev_entity = $prevEntity;
+        if($outdatedEntity !== null) $this->outdated_entity = $outdatedEntity;
+        if($indicatorDependencies !== null) $this->indicator_dependencies = $indicatorDependencies;
     }
 
     public function getIndicatorName(): string

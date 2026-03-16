@@ -16,9 +16,9 @@ class MacdDTO extends \App\Kstrwbry\DtoBundle\Base\DtoBase
 
     public function __construct(?int $shortPeriod = null, ?int $longPeriod = null, ?int $signalPeriod = null)
     {
-        if ($shortPeriod !== null) $this->short_period = $shortPeriod;
-        if ($longPeriod !== null) $this->long_period = $longPeriod;
-        if ($signalPeriod !== null) $this->signal_period = $signalPeriod;
+        if($shortPeriod !== null) $this->short_period = $shortPeriod;
+        if($longPeriod !== null) $this->long_period = $longPeriod;
+        if($signalPeriod !== null) $this->signal_period = $signalPeriod;
     }
 
     public function getShortPeriod(): int

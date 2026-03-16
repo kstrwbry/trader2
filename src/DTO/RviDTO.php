@@ -16,9 +16,9 @@ class RviDTO extends \App\Kstrwbry\DtoBundle\Base\DtoBase
 
     public function __construct(?int $period = null, ?int $lowerSignalLine = null, ?int $upperSignalLine = null)
     {
-        if ($period !== null) $this->period = $period;
-        if ($lowerSignalLine !== null) $this->lower_signal_line = $lowerSignalLine;
-        if ($upperSignalLine !== null) $this->upper_signal_line = $upperSignalLine;
+        if($period !== null) $this->period = $period;
+        if($lowerSignalLine !== null) $this->lower_signal_line = $lowerSignalLine;
+        if($upperSignalLine !== null) $this->upper_signal_line = $upperSignalLine;
     }
 
     public function getPeriod(): int

@@ -345,3 +345,4 @@ $RECYCLE.BIN/
 ca.pem
 testdata.json
 trade.log
+cron.log

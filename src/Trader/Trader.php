@@ -40,6 +40,10 @@ class Trader
         KlinerawDTO $klinerawDTO,
         Strategy    $strategy,
     ): void {
+        if(false === $klinerawDTO->getIsClosedBool()) {
+            return;
+        }
+
         $crossCount = 0;
         $buyCount = 0;
         $sellCount = 0;
@@ -50,38 +54,38 @@ class Trader
         //$lastBuyTradePrice = $exchangeInfoDTO->getLastBuyTradePrice();
         //$closeFloat = $klinerawDTO->getCloseFloat();
 
-        if (false === $klinerawDTO->getIsClosedBool()) {
+        if(false === $klinerawDTO->getIsClosedBool()) {
             $this->klinesBeforeClose[] = $klinerawDTO;
             $indicatorEntities = iterator_to_array(
                 $strategy->addKline($this->buildKline($strategy, $klinerawDTO)),
             );
 
-            foreach ($strategy->getIndicators() as $indicatorDTO) {
+            foreach($strategy->getIndicators() as $indicatorDTO) {
                 $indicatorDTO->getIndicator()->pop();
             }
         } else {
             $this->klinesBeforeClose = [];
 
             $indicatorEntities = array_map(
-                static fn (IndicatorDTO $indicatorDTO) => $indicatorDTO->getPrevEntity(),
+                static fn(IndicatorDTO $indicatorDTO) => $indicatorDTO->getPrevEntity(),
                 $strategy->getIndicators(),
             );
         }
 
-        foreach ($indicatorEntities as $indicatorName => $indicatorEntity) {
-            if (false === $indicatorEntity instanceof SignalPropertyInterface) {
+        foreach($indicatorEntities as $indicatorName => $indicatorEntity) {
+            if(false === $indicatorEntity instanceof SignalPropertyInterface) {
                 continue;
             }
 
-            if ($indicatorEntity->getCross() === TraderConsts::CROSS_UP) {
+            if($indicatorEntity->getCross() === TraderConsts::CROSS_UP) {
                 $crossCount++;
             }
 
-            if ($indicatorEntity->getSignal() === TraderConsts::SIGNAL_BUY) {
+            if($indicatorEntity->getSignal() === TraderConsts::SIGNAL_BUY) {
                 $buyCount++;
             }
 
-            if ($indicatorEntity->getSignal() === TraderConsts::SIGNAL_SELL || $indicatorEntity->getCross() === TraderConsts::CROSS_DOWN) {
+            if($indicatorEntity->getSignal() === TraderConsts::SIGNAL_SELL || $indicatorEntity->getCross() === TraderConsts::CROSS_DOWN) {
                 $sellCount++;
             }
 
@@ -90,7 +94,8 @@ class Trader
             $cross = str_pad((string)$indicatorEntity->getCross(), 2, ' ', STR_PAD_LEFT);
 
             $message = sprintf(
-                "[Log %s] %s | Signal: %s | Cross: %s | closed: %d | runIndex: %d",
+                "[Log %s %s] %s | Signal: %s | Cross: %s | closed: %d | runIndex: %d",
+                $klinerawDTO->getSymbol(),
                 $indicatorEntity->getId(),
                 $indicatorName,
                 $signal,
@@ -99,27 +104,28 @@ class Trader
                 $klinerawDTO->getRunIndex(),
             ) . PHP_EOL;
 
-            if ($klinerawDTO->getIsClosedBool() === true) {
+            if($klinerawDTO->getIsClosedBool() === true) {
                 // Add green color for Bash
                 echo "\033[32m$message\033[0m";
             } else {
                 echo $message;
             }
 
-            if (false === $klinerawDTO->getIsClosedBool()) {
+            if(false === $klinerawDTO->getIsClosedBool()) {
                 $indicatorDTO->getIndicator()->pop();
             }
         }
 
-        if ($sellCount > 0) {
+        if($sellCount > 0) {
             $this->sell($klinerawDTO->getSymbol(), $klinerawDTO->getCloseFloat());
 
             return;
         }
 
+        // TODO: predict kline final price
         //$predictedPrice = $this->predictPrice();
 
-        if ($klinerawDTO->getIsClosedBool() && $buyCount > 0 && $crossCount > 0) {
+        if($klinerawDTO->getIsClosedBool() && $buyCount > 0 && $crossCount > 0) {
             $this->buy($klinerawDTO->getSymbol(), $klinerawDTO->getCloseFloat());
 
             return;
@@ -140,7 +146,7 @@ class Trader
         try {
             $exchangeInfoDTO = $this->getExchangeInfoDTO($symbol, $currentPrice);
 
-            if ($exchangeInfoDTO->getQuantityToSell() < $exchangeInfoDTO->getMinQty()) {
+            if($exchangeInfoDTO->getQuantityToSell() < $exchangeInfoDTO->getMinQty()) {
                 echo "\n\n[Sell] Nothing to sell (current quantity: {$exchangeInfoDTO->getQuantityToSell()}, minQty: {$exchangeInfoDTO->getMinQty()})\n\n";
                 return;
             }
@@ -152,7 +158,7 @@ class Trader
             echo "\n\n\n";
 
             $this->createExchangeInfoDTO($symbol);
-        } catch (Throwable $e) {
+        } catch(Throwable $e) {
             // Log the error or handle it as needed
             echo "\n\n[Sell] Error during sell operation: " . $e->getMessage() . "\n\n\n";
         }
@@ -163,7 +169,7 @@ class Trader
         try {
             $exchangeInfoDTO = $this->getExchangeInfoDTO($symbol, $currentPrice);
 
-            if ($exchangeInfoDTO->getQuantityToBuy() < $exchangeInfoDTO->getMinQty()) {
+            if($exchangeInfoDTO->getQuantityToBuy() < $exchangeInfoDTO->getMinQty()) {
                 echo "\n\n[Sell] Nothing to buy (current quantity: {$exchangeInfoDTO->getQuantityToBuy()}, minQty: {$exchangeInfoDTO->getMinQty()})\n\n";
                 return;
             }
@@ -175,7 +181,7 @@ class Trader
             echo "\n\n\n";
 
             $this->createExchangeInfoDTO($symbol);
-        } catch (Throwable $e) {
+        } catch(Throwable $e) {
             // Log the error or handle it as needed
             echo "\n\n[Buy] Error during buy operation: " . $e->getMessage() . "\n\n\n";
         }
@@ -226,13 +232,13 @@ class Trader
     {
         $exchangeInfoDTO = $this->exchangeInfos[$symbol] ?? null;
 
-        if (!$exchangeInfoDTO) {
+        if(!$exchangeInfoDTO) {
             $exchangeInfo = $this->binanceApiBlank->exchangeInfo();
             $symbolInfo = $exchangeInfo['symbols'][$symbol];
 
             $lotSizeFilter = [];
-            foreach ($symbolInfo['filters'] as $filter) {
-                if ($filter['filterType'] === 'LOT_SIZE') {
+            foreach($symbolInfo['filters'] as $filter) {
+                if($filter['filterType'] === 'LOT_SIZE') {
                     $lotSizeFilter = $filter;
                 }
             }

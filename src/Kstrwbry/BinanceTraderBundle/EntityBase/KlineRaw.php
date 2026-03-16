@@ -136,6 +136,7 @@ abstract class KlineRaw implements KlineRawInterface
         $this->takerBuyQuoteAssetVolume = $klineRawDTO->getTakerBuyQuoteAssetVolume();
         $this->takerBuyQuoteAssetVolumeFloat = $klineRawDTO->getTakerBuyQuoteAssetVolumeFloat();
         $this->runIndex = $klineRawDTO->getRunIndex();
+        $this->run = $klineRawDTO->getRun();
     }
 
     public function getClose(): float
@@ -151,5 +152,15 @@ abstract class KlineRaw implements KlineRawInterface
     public function getRunIndex(): int
     {
         return $this->runIndex;
+    }
+
+    public function getHighFloat(): float
+    {
+        return $this->highFloat;
+    }
+
+    public function getLowFloat(): float
+    {
+        return $this->lowFloat;
     }
 }

@@ -10,4 +10,8 @@ interface KlineRawInterface
     public function isClosed(): bool;
 
     public function getRunIndex(): int;
+
+    public function getHighFloat(): float;
+
+    public function getLowFloat(): float;
 }

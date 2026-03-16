@@ -39,6 +39,7 @@ class KlinerawDTO extends \App\Kstrwbry\DtoBundle\Base\DtoBase
     protected float $taker_buy_base_asset_volume_float;
     protected string $taker_buy_quote_asset_volume;
     protected float $taker_buy_quote_asset_volume_float;
+    protected string $run;
 
     public function __construct(
         ?int $runIndex = null,
@@ -70,36 +71,38 @@ class KlinerawDTO extends \App\Kstrwbry\DtoBundle\Base\DtoBase
         ?float $takerBuyBaseAssetVolumeFloat = null,
         ?string $takerBuyQuoteAssetVolume = null,
         ?float $takerBuyQuoteAssetVolumeFloat = null,
+        ?string $run = null,
     ) {
-        if ($runIndex !== null) $this->run_index = $runIndex;
-        if ($startTime !== null) $this->start_time = $startTime;
-        if ($startTimeDate !== null) $this->start_time_date = $startTimeDate;
-        if ($closeTime !== null) $this->close_time = $closeTime;
-        if ($closeTimeDate !== null) $this->close_time_date = $closeTimeDate;
-        if ($symbol !== null) $this->symbol = $symbol;
-        if ($interval !== null) $this->interval = $interval;
-        if ($firstTradeId !== null) $this->first_trade_id = $firstTradeId;
-        if ($lastTradeId !== null) $this->last_trade_id = $lastTradeId;
-        if ($open !== null) $this->open = $open;
-        if ($openFloat !== null) $this->open_float = $openFloat;
-        if ($close !== null) $this->close = $close;
-        if ($closeFloat !== null) $this->close_float = $closeFloat;
-        if ($high !== null) $this->high = $high;
-        if ($highFloat !== null) $this->high_float = $highFloat;
-        if ($low !== null) $this->low = $low;
-        if ($lowFloat !== null) $this->low_float = $lowFloat;
-        if ($baseAssetVolume !== null) $this->base_asset_volume = $baseAssetVolume;
-        if ($baseAssetVolumeFloat !== null) $this->base_asset_volume_float = $baseAssetVolumeFloat;
-        if ($tradesCount !== null) $this->trades_count = $tradesCount;
-        if ($tradesCountInt !== null) $this->trades_count_int = $tradesCountInt;
-        if ($isClosed !== null) $this->is_closed = $isClosed;
-        if ($isClosedBool !== null) $this->is_closed_bool = $isClosedBool;
-        if ($quoteAssetVolume !== null) $this->quote_asset_volume = $quoteAssetVolume;
-        if ($quoteAssetVolumeFloat !== null) $this->quote_asset_volume_float = $quoteAssetVolumeFloat;
-        if ($takerBuyBaseAssetVolume !== null) $this->taker_buy_base_asset_volume = $takerBuyBaseAssetVolume;
-        if ($takerBuyBaseAssetVolumeFloat !== null) $this->taker_buy_base_asset_volume_float = $takerBuyBaseAssetVolumeFloat;
-        if ($takerBuyQuoteAssetVolume !== null) $this->taker_buy_quote_asset_volume = $takerBuyQuoteAssetVolume;
-        if ($takerBuyQuoteAssetVolumeFloat !== null) $this->taker_buy_quote_asset_volume_float = $takerBuyQuoteAssetVolumeFloat;
+        if($runIndex !== null) $this->run_index = $runIndex;
+        if($startTime !== null) $this->start_time = $startTime;
+        if($startTimeDate !== null) $this->start_time_date = $startTimeDate;
+        if($closeTime !== null) $this->close_time = $closeTime;
+        if($closeTimeDate !== null) $this->close_time_date = $closeTimeDate;
+        if($symbol !== null) $this->symbol = $symbol;
+        if($interval !== null) $this->interval = $interval;
+        if($firstTradeId !== null) $this->first_trade_id = $firstTradeId;
+        if($lastTradeId !== null) $this->last_trade_id = $lastTradeId;
+        if($open !== null) $this->open = $open;
+        if($openFloat !== null) $this->open_float = $openFloat;
+        if($close !== null) $this->close = $close;
+        if($closeFloat !== null) $this->close_float = $closeFloat;
+        if($high !== null) $this->high = $high;
+        if($highFloat !== null) $this->high_float = $highFloat;
+        if($low !== null) $this->low = $low;
+        if($lowFloat !== null) $this->low_float = $lowFloat;
+        if($baseAssetVolume !== null) $this->base_asset_volume = $baseAssetVolume;
+        if($baseAssetVolumeFloat !== null) $this->base_asset_volume_float = $baseAssetVolumeFloat;
+        if($tradesCount !== null) $this->trades_count = $tradesCount;
+        if($tradesCountInt !== null) $this->trades_count_int = $tradesCountInt;
+        if($isClosed !== null) $this->is_closed = $isClosed;
+        if($isClosedBool !== null) $this->is_closed_bool = $isClosedBool;
+        if($quoteAssetVolume !== null) $this->quote_asset_volume = $quoteAssetVolume;
+        if($quoteAssetVolumeFloat !== null) $this->quote_asset_volume_float = $quoteAssetVolumeFloat;
+        if($takerBuyBaseAssetVolume !== null) $this->taker_buy_base_asset_volume = $takerBuyBaseAssetVolume;
+        if($takerBuyBaseAssetVolumeFloat !== null) $this->taker_buy_base_asset_volume_float = $takerBuyBaseAssetVolumeFloat;
+        if($takerBuyQuoteAssetVolume !== null) $this->taker_buy_quote_asset_volume = $takerBuyQuoteAssetVolume;
+        if($takerBuyQuoteAssetVolumeFloat !== null) $this->taker_buy_quote_asset_volume_float = $takerBuyQuoteAssetVolumeFloat;
+        if($run !== null) $this->run = $run;
     }
 
     public function getRunIndex(): int
@@ -446,6 +449,18 @@ class KlinerawDTO extends \App\Kstrwbry\DtoBundle\Base\DtoBase
     public function setTakerBuyQuoteAssetVolumeFloat(float $taker_buy_quote_asset_volume_float): static
     {
         $this->taker_buy_quote_asset_volume_float = $taker_buy_quote_asset_volume_float;
+
+        return $this;
+    }
+
+    public function getRun(): string
+    {
+        return $this->run;
+    }
+
+    public function setRun(string $run): static
+    {
+        $this->run = $run;
 
         return $this;
     }

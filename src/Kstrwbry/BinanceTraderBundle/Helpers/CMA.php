@@ -23,7 +23,7 @@ class CMA
         $CMA = [];
         $CMA[] = $numbers[0];
 
-        for ($i = 1; $i < $period; $i++) {
+        for($i = 1; $i < $period; $i++) {
             $CMA[] = self::calcSingle($numbers[$i], $i, $CMA[$i - 1]);
         }
 

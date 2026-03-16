@@ -59,6 +59,7 @@ abstract class RSI implements SignalPropertyInterface, RSIInterface
         $this->prevEntity   = $prevEntity;
         $this->prevEntityId = $prevEntity?->getId();
         $this->period       = $period;
+        $this->run          = $kline->getRun();
 
         $this->lowerSignalLine = $lowerSignalLine;
         $this->upperSignalLine = $upperSignalLine;
@@ -70,9 +71,6 @@ abstract class RSI implements SignalPropertyInterface, RSIInterface
 
     private function calcRSI(): float
     {
-        $this->avgGain = $this->calcAvg($this->gainSum, $this->period);
-        $this->avgLoss = $this->calcAvg($this->lossSum, $this->period);
-
         if($this->avgGain === 0.0) {
             $this->rs  = 0;
             $this->rsi = 100;
@@ -91,39 +89,12 @@ abstract class RSI implements SignalPropertyInterface, RSIInterface
         return $this->getRSI();
     }
 
-    /**
-     * Calculates and stores the RSI value and the buy/sell signal.
-     *
-     * Prerequisites (set by Indicator\RSI before this is called):
-     *   - $this->gainSum  populated via setGainSum()  (rolling sum over `period` candles)
-     *   - $this->lossSum  populated via setLossSum()
-     *
-     * Results stored:
-     *   - $this->avgGain, $this->avgLoss  (average gain/loss over period)
-     *   - $this->rs    = avgGain / avgLoss
-     *   - $this->rsi   = 100 - (100 / (1 + RS))
-     *   - $this->signal via calcSignal()
-     *
-     * Note: calcAvg() currently returns 0 whenever sum >= 0 OR period >= 0 — this
-     * looks like a logic inversion (should be `<= 0.0` / `<= 0`) worth reviewing.
-     */
     public function calcIndicator(): float
     {
         $this->calcRSI();
         $this->calcSignal();
 
         return $this->getRSI();
-    }
-
-    private function calcAvg(
-        float $sum,
-        int $period
-    ): float {
-        if(0.0 <= $sum || 0.0 <= $period) {
-            return 0.0;
-        }
-
-        return $sum / $period;
     }
 
     public function setGainSum(float $gainSum): static
@@ -158,9 +129,21 @@ abstract class RSI implements SignalPropertyInterface, RSIInterface
         return $this->avgGain;
     }
 
+    public function setAvgGain(float $avgGain): static
+    {
+        $this->avgGain = $avgGain;
+        return $this;
+    }
+
     public function getAvgLoss(): float
     {
         return $this->avgLoss;
+    }
+
+    public function setAvgLoss(float $avgLoss): static
+    {
+        $this->avgLoss = $avgLoss;
+        return $this;
     }
 
     public function getRs(): float
@@ -190,14 +173,37 @@ abstract class RSI implements SignalPropertyInterface, RSIInterface
 
     public function calcSignal(): int
     {
-        if(
-            !$this->getPrevEntity()
-            || $this->getPeriod() > ($this->getKline()->getRunIndex() + 1)
-        ) {
+        /** @var RSIInterface $prev */
+        $prev = $this->getPrevEntity();
+
+        if(!$prev || $this->getPeriod() > ($this->getKline()->getRunIndex() + 1)) {
+            $this->cross = TraderConsts::SIGNAL_NEUTRAL;
             return $this->setSignal(TraderConsts::SIGNAL_NEUTRAL);
         }
 
-        // TODO: Implement calcSignal() method.
-        return $this->signal = TraderConsts::SIGNAL_NEUTRAL;
+        $lastRsi = $prev->getRSI();
+        $currentRsi = $this->getRSI();
+
+        if($lastRsi < $currentRsi
+            && $lastRsi <= $this->getLowerSignalLine()
+            && $currentRsi >= $this->getLowerSignalLine()
+        ) {
+            $this->signal = TraderConsts::SIGNAL_BUY;
+            $this->cross = TraderConsts::SIGNAL_BUY;
+            return $this->signal;
+        }
+
+        if($lastRsi > $currentRsi
+            && $lastRsi >= $this->getUpperSignalLine()
+            && $currentRsi <= $this->getUpperSignalLine()
+        ) {
+            $this->signal = TraderConsts::SIGNAL_SELL;
+            $this->cross = TraderConsts::SIGNAL_SELL;
+            return $this->signal;
+        }
+
+        $this->signal = TraderConsts::SIGNAL_NEUTRAL;
+        $this->cross = $prev->getCross();
+        return $this->signal;
     }
 }

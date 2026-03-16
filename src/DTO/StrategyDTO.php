@@ -19,9 +19,9 @@ class StrategyDTO extends \App\Kstrwbry\DtoBundle\Base\DtoBase
         ?int $stopLossCondition = null,
         ?array $indicators = null,
     ) {
-        if ($strategyName !== null) $this->strategy_name = $strategyName;
-        if ($stopLossCondition !== null) $this->stop_loss_condition = $stopLossCondition;
-        if ($indicators !== null) $this->indicators = $indicators;
+        if($strategyName !== null) $this->strategy_name = $strategyName;
+        if($stopLossCondition !== null) $this->stop_loss_condition = $stopLossCondition;
+        if($indicators !== null) $this->indicators = $indicators;
     }
 
     public function getStrategyName(): string

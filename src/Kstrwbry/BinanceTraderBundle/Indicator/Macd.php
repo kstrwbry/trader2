@@ -7,7 +7,6 @@ use App\Kstrwbry\BinanceTraderBundle\Helpers\EMA;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\MACDInterface;
-use Doctrine\Common\Collections\ArrayCollection;
 use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorTrait;
 
 class Macd implements IndicatorInterface

@@ -64,19 +64,6 @@ class Strategy
         return $indicatorDTO;
     }
 
-    /**
-     * Process a new kline through every configured indicator.
-     *
-     * For each indicator:
-     *   1. The EntityBuilder constructs the entity (passing prevEntity for rolling state).
-     *   2. The Indicator service adds the entity to its collection and runs its own
-     *      bookkeeping (EMA accumulation, gain/loss sums, etc.) via IndicatorTrait::calc().
-     *   3. entity->calcIndicator() is called so the entity finalises its own stored
-     *      values (cross, RSI, RVI, …) immediately before being handed back for persist.
-     *
-     * @return iterable<IndicatorEntityInterface> All indicator entities built for this kline,
-     *                                   ready to be persisted by the caller.
-     */
     public function addKline(KlineInterface $kline): iterable
     {
         foreach($this->indicators as $indicatorName => $indicatorDTO) {
@@ -90,7 +77,7 @@ class Strategy
 
             $entity->calcIndicator();
 
-            if (false === $kline->isClosed()) {
+            if(false === $kline->isClosed()) {
                 yield $indicatorName => $entity;
                 continue;
             }

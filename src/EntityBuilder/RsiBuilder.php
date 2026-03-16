@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\EntityBuilder;
 
 use App\DTO\RsiDTO;
-use App\Entity\RSI;
+use App\Entity\Rsi;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\RSIInterface;
@@ -15,7 +15,7 @@ class RsiBuilder extends EntityBuilderBase
 {
     protected DTOInterface|RsiDTO $config;
 
-    protected string $entityClass = RSI::class;
+    protected string $entityClass = Rsi::class;
 
     public function __construct(
         DTOInterface $config,
@@ -28,14 +28,14 @@ class RsiBuilder extends EntityBuilderBase
     }
 
     /**
-     * Build and return an indicator entity instance.
+     * {@inheritDoc}
      */
     public function build(
         KlineInterface $kline,
         IndicatorEntityInterface|null $prevEntity,
         array $indicatorDependencies,
     ): RSIInterface {
-        return new RSI(
+        return new Rsi(
             $this->getNextId($kline->isClosed()),
             $kline,
             $prevEntity,

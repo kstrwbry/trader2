@@ -1,0 +1,3 @@
+#* * * * * /usr/local/bin/php /var/www/html/bin/console binance:data:fetch --symbols=ADAUSDC >> /var/www/html/cron.log 2>&1
+#* * * * * /usr/local/bin/php /var/www/html/bin/console binance:data:fetch --symbols=BTCUSDC >> /var/www/html/cron.log 2>&1
+#* * * * * /usr/local/bin/php /var/www/html/bin/console binance:data:fetch --symbols=ETHUSDC >> /var/www/html/cron.log 2>&1

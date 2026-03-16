@@ -49,6 +49,7 @@ abstract class Kline implements KlineInterface
         $this->raw  = $raw;
         $this->prev = $prev;
         $this->prevId = $prev?->getId();
+        $this->run    = $raw->getRun();
 
         $this->close = $raw->getClose();
         $this->prevClose = $prev ? $prev->getClose() : 0.0;
@@ -86,13 +87,6 @@ abstract class Kline implements KlineInterface
         return $this->loss;
     }
 
-    public function setPrevId(int|null $prevId): static
-    {
-        $this->prevId = $prevId;
-
-        return $this;
-    }
-
     public function getPrev(): KlineInterface|null
     {
         return $this->prev;
@@ -101,6 +95,10 @@ abstract class Kline implements KlineInterface
     public function setPrev(KlineInterface|null $prev): static
     {
         $this->prev = $prev;
+
+        if($prev) {
+            $this->prevId = $prev->getId();
+        }
 
         return $this;
     }
@@ -123,5 +121,21 @@ abstract class Kline implements KlineInterface
     public function isClosed(): bool
     {
         return $this->raw->isClosed();
+    }
+
+    public function getHighFloat(): float
+    {
+        return $this->raw->getHighFloat();
+    }
+
+    public function getLowFloat(): float
+    {
+        return $this->raw->getLowFloat();
+    }
+
+    public function __destruct()
+    {
+        $this->raw = null;
+        $this->prev = null;
     }
 }

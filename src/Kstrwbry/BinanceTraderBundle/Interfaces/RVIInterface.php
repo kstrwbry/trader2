@@ -19,8 +19,6 @@ interface RVIInterface extends IndicatorEntityInterface, StdDevConnectionInterfa
         float             $upperSignalLine = 70,
     );
 
-    public function getPeriod(): int;
-
     public function getUpperSignalLine(): float;
 
     public function getLowerSignalLine(): float;

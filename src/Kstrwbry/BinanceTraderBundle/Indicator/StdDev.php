@@ -7,20 +7,13 @@ use App\Kstrwbry\BinanceTraderBundle\Helpers\EMA;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorInterface;
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\StdDevInterface;
-use Doctrine\Common\Collections\ArrayCollection;
 use App\Kstrwbry\BinanceTraderBundle\Trait\IndicatorTrait;
 
+use function array_shift;
 use function min;
-use function sqrt;
 
 /**
  * Standard deviation (StdDev) - STATELESS
- *
- * All calculation state is stored in the entity database columns.
- * This class reads from the entity chain (prevEntity, outdated entity via collection)
- * and writes results back to the current entity's properties.
- *
- * No in-memory arrays = supports re-calculation from persisted data.
  */
 class StdDev implements IndicatorInterface
 {
@@ -54,6 +47,14 @@ class StdDev implements IndicatorInterface
         $prevEntity = $number->getPrevEntity();
         $prevPrice = $prevEntity?->getClose() ?? 0.0;
 
+        $lastPrices = $prevEntity?->getLastPrices() ?? [];
+        $lastPrices[] = $price;
+
+        if ($period < ($number->getKline()->getRunIndex() + 1)) {
+            array_shift($lastPrices);
+        }
+        $number->setLastPrices($lastPrices);
+
         // Determine if this candle moved up or down
         $priceUpper = $prevPrice < $price ? $price : 0.0;
         $priceLower = $prevPrice > $price ? $price : 0.0;
@@ -84,29 +85,6 @@ class StdDev implements IndicatorInterface
         $avgPeriod = min($index + 1, $period);
         $avg = $priceSum / $avgPeriod;
         $number->setAvg($avg);
-
-        // Calculate standard deviation by walking back through entity chain
-        if(0 === $index) {
-            $number->setStdDev(0.0);
-            return;
-        }
-
-        $actualPeriod = min($index + 1, $period);
-        $stdDevSum = 0.0;
-
-        // Walk backwards through the entity chain to gather prices
-        $currentEntity = $number;
-        for ($i = 0; $i < $actualPeriod; $i++) {
-            if(null === $currentEntity) {
-                break;
-            }
-            $currentPrice = $currentEntity->getClose();
-            $stdDevSum += ($currentPrice - $avg) ** 2;
-            $currentEntity = $currentEntity->getPrevEntity();
-        }
-
-        $stdDevValue = sqrt($stdDevSum / $actualPeriod);
-        $number->setStdDev($stdDevValue);
     }
 
     /**
@@ -117,10 +95,22 @@ class StdDev implements IndicatorInterface
     {
         /** @var StdDevInterface|null $prevEntity */
         $prevEntity = $number->getPrevEntity();
+        $number->setEma(EMA::calcSingle(
+            $number->getClose(),
+            $number->getPeriod(),
+            $prevEntity?->getEma() ?? 0.0
+        ));
+
         $number->setEmaLower(EMA::calcSingle(
             $number->getClose(),
             $number->getPeriod(),
             $prevEntity?->getEmaLower() ?? 0.0
+        ));
+
+        $number->setEmaLower(EMA::calcSingle(
+            $number->getClose(),
+            $number->getPeriod(),
+            $prevEntity?->getEmaUpper() ?? 0.0
         ));
     }
 }

@@ -11,14 +11,12 @@ interface RSIInterface extends IndicatorEntityInterface
         int               $id,
         KlineInterface    $kline,
         RSIInterface|null $prevEntity,
-        int               $period = 14
+        int               $period = 14,
     );
 
     public function setGainSum(float $gainSum): static;
 
     public function setLossSum(float $lossSum): static;
-
-    public function getPeriod(): int;
 
     public function getGainSum(): float;
 
@@ -26,7 +24,11 @@ interface RSIInterface extends IndicatorEntityInterface
 
     public function getAvgGain(): float;
 
+    public function setAvgGain(float $avgGain): static;
+
     public function getAvgLoss(): float;
+
+    public function setAvgLoss(float $avgLoss): static;
 
     public function getRs(): float;
 

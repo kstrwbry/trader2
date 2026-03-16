@@ -6,7 +6,6 @@ namespace App\Logger;
 use App\DTO\KlinerawDTO;
 use App\EntityBuilder\KlineBuilder;
 use App\EntityBuilder\KlineRawBuilder;
-use App\Kstrwbry\BinanceTraderBundle\Interfaces\KlineInterface;
 use App\Strategy\Strategy;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -15,15 +14,13 @@ class KlineLogger
     /** @var array<Strategy> */
     private array $strategies = [];
 
-    /** @var array<KlineInterface> */
-    private array $klines;
-
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly KlineBuilder $klineBuilder,
         private readonly KlineRawBuilder $klineRawBuilder,
     ) {}
 
+    // TODO: unset entities after flush to avoid memory leak (unset prev kline (and raw?), and unset indicators)
     public function logKline(
         KlinerawDTO $klinerawDTO,
         Strategy    $strategy,
@@ -43,7 +40,7 @@ class KlineLogger
         #));
 
         $raw = $this->klineRawBuilder->build($klinerawDTO);
-        $this->klines[] = $kline = $this->klineBuilder->build($raw, $strategy->getKline());
+        $kline = $this->klineBuilder->build($raw, $strategy->getKline());
 
         $this->em->persist($raw);
         $this->em->persist($kline);
@@ -52,11 +49,7 @@ class KlineLogger
             $this->em->persist($indicatorEntity);
         }
 
-        if ($klinerawDTO->getRunIndex() > 100) {
-            array_shift($this->klines)?->setPrev(null);
-        }
-
-        if ($doFlush) {
+        if($doFlush) {
             $this->em->flush();
         }
     }

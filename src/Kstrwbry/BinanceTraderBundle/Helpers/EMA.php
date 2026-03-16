@@ -24,7 +24,7 @@ class EMA
         $EMA   = [];
         $EMA[] = $numbers[0];
 
-        for ($day = 1; $day < $cnt; $day++) {
+        for($day = 1; $day < $cnt; $day++) {
             $EMA[] = static::calcSingle($numbers[$day], $period, $EMA[$day - 1]);
         }
 

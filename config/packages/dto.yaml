@@ -42,6 +42,7 @@ kstrwbry_dto:
             taker_buy_base_asset_volume_float: float
             taker_buy_quote_asset_volume: string
             taker_buy_quote_asset_volume_float: float
+            run: string
         RVI:
             period: int
             lower_signal_line: int
@@ -54,6 +55,10 @@ kstrwbry_dto:
             short_period: int
             long_period: int
             signal_period: int
+        ATR:
+            period: int
+        EMA:
+            period: int
         StdDev:
             period: int
         exchangeInfo:
@@ -70,5 +75,5 @@ kstrwbry_dto:
             quoteAssetToBuy: float      # calculated amount of ADA or BTC to buy in USDC or EUR
             quantityToSell: float       # amount of ADA or BTC to sell
             percentageToSpend: float
-            lastBuyTradePrice: float
-            lastSellTradePrice: float
+            lastBuyTradePrice: float|null
+            lastSellTradePrice: float|null

@@ -3,11 +3,13 @@ declare(strict_types=1);
 
 namespace App\EntityBuilder;
 
+use App\DTO\AtrDTO;
 use App\DTO\IndicatorDTO;
 use App\DTO\MacdDTO;
 use App\DTO\RsiDTO;
 use App\DTO\RviDTO;
 use App\DTO\StddevDTO;
+use App\Kstrwbry\BinanceTraderBundle\EntityBase\ATR as ATRBase;
 use App\Kstrwbry\BinanceTraderBundle\EntityBase\MACD as MACDBase;
 use App\Kstrwbry\BinanceTraderBundle\EntityBase\RSI as RSIBase;
 use App\Kstrwbry\BinanceTraderBundle\EntityBase\RVI as RVIBase;
@@ -23,13 +25,8 @@ class EntityBuilderFactory
         private readonly EntityManagerInterface $em,
     ) {}
 
-    /**
-     * Maps EntityBase class → [BuilderClass, DTOClass].
-     * Keyed by the *base* class so that concrete App\Entity\* subclasses match via is_a().
-     *
-     * @var array<class-string, array{0: class-string<EntityBuilderBase>, 1: class-string<DtoBase>}>
-     */
     protected array $entityBuilders = [
+        ATRBase::class    => [AtrBuilder::class,    AtrDTO::class],
         MACDBase::class   => [MacdBuilder::class,   MacdDTO::class],
         RSIBase::class    => [RsiBuilder::class,    RsiDTO::class],
         RVIBase::class    => [RviBuilder::class,    RviDTO::class],
@@ -37,9 +34,6 @@ class EntityBuilderFactory
     ];
 
     /**
-     * Create the correct builder for the given entity class, hydrating its DTO from
-     * the raw config array (e.g. from binance-trader.yaml).
-     *
      * @param class-string $entityClass Fully-qualified entity class name
      * @param IndicatorDTO $indicatorDTO Raw config values (snake_case keys from YAML)
      */
@@ -70,8 +64,6 @@ class EntityBuilderFactory
     }
 
     /**
-     * Hydrate a DTO from a raw config array using DtoBase::__unserialize().
-     *
      * @template T of DtoBase
      * @param class-string<T> $dtoClass
      * @return T

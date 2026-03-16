@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\DTO;
 
-class StddevDTO extends \App\Kstrwbry\DtoBundle\Base\DtoBase
+class EmaDTO extends \App\Kstrwbry\DtoBundle\Base\DtoBase
 {
     protected int $period;
 

@@ -77,7 +77,7 @@ class DtoClassBuilder
 
         $this->constructor->addBody(
             sprintf(
-                'if ($%2$s !== null) $this->%1$s = $%2$s; ',
+                'if($%2$s !== null) $this->%1$s = $%2$s; ',
                 $propertyName,
                 $parameterName,
             )
@@ -91,7 +91,7 @@ class DtoClassBuilder
             ->setType($phpTypes)
             ->setNullable($nullable);
 
-        if ($nullable) {
+        if($nullable) {
             $property->setValue(null);
         }
     }

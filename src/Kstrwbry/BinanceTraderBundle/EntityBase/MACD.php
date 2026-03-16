@@ -52,6 +52,7 @@ abstract class MACD implements SignalPropertyInterface, MACDInterface
         $this->longPeriod   = $longPeriod;
         $this->signalPeriod = $signalPeriod;
         $this->close        = $kline->getClose();
+        $this->run          = $kline->getRun();
     }
 
     public function getShortPeriod(): int
@@ -140,9 +141,7 @@ abstract class MACD implements SignalPropertyInterface, MACDInterface
     {
         if(
             !$this->getPrevEntity()
-            || $this->getShortPeriod() > ($this->getKline()->getRunIndex() + 1)
-            || $this->getLongPeriod() > ($this->getKline()->getRunIndex() + 1)
-            || $this->getSignalPeriod() > ($this->getKline()->getRunIndex() + 1)
+            || $this->getPeriod() > ($this->getKline()->getRunIndex() + 1)
         ) {
             return $this->cross = TraderConsts::MACD_EVEN;
         }
@@ -152,29 +151,26 @@ abstract class MACD implements SignalPropertyInterface, MACDInterface
 
     public function calcSignal(): int
     {
-        if(
-            !$this->getPrevEntity()
-            || $this->getShortPeriod() > ($this->getKline()->getRunIndex() + 1)
-            || $this->getLongPeriod() > ($this->getKline()->getRunIndex() + 1)
-            || $this->getSignalPeriod() > ($this->getKline()->getRunIndex() + 1)
-        ) {
+        /** @var MACDInterface $prev */
+        $prev = $this->getPrevEntity();
+        $kline = $this->getKline();
+
+        if(!$prev || $this->getPeriod() > ($kline->getRunIndex() + 1)) {
             return $this->setSignal(TraderConsts::SIGNAL_NEUTRAL);
         }
 
-        $prevCross = $this->getPrevEntity()->getCross();
+        $prevCross = $prev->getCross();
         $this->cross = $this->macd <=> $this->getSignalEMA();
 
         $signal = TraderConsts::SIGNAL_NEUTRAL;
 
-        if($this->cross === TraderConsts::MACD_OVER_SIGNAL_LINE && ($prevCross === TraderConsts::MACD_EVEN || $prevCross === TraderConsts::MACD_UNDER_SIGNAL_LINE)) {
+        if(/*$this->macd > 0 &&*/ $this->cross === TraderConsts::MACD_OVER_SIGNAL_LINE && ($prevCross === TraderConsts::MACD_EVEN || $prevCross === TraderConsts::MACD_UNDER_SIGNAL_LINE)) {
             $signal = TraderConsts::SIGNAL_BUY;
         }
 
         if($this->cross === TraderConsts::MACD_UNDER_SIGNAL_LINE && ($prevCross === TraderConsts::MACD_EVEN || $prevCross === TraderConsts::MACD_OVER_SIGNAL_LINE)) {
             $signal = TraderConsts::SIGNAL_SELL;
         }
-
-        #print_r('macd: ' . $this->macd . ' | signal line: ' . $this->getSignalEMA() . ' | prevCross: ' . $prevCross . ' | cross: ' . $this->cross . ' | signal: ' . $signal . PHP_EOL);
 
         return $this->setSignal($signal);
     }

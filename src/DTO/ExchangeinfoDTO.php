@@ -23,8 +23,8 @@ class ExchangeinfoDTO extends \App\Kstrwbry\DtoBundle\Base\DtoBase
     protected float $quoteAssetToBuy;
     protected float $quantityToSell;
     protected float $percentageToSpend;
-    protected float $lastBuyTradePrice;
-    protected float $lastSellTradePrice;
+    protected ?float $lastBuyTradePrice = null;
+    protected ?float $lastSellTradePrice = null;
 
     public function __construct(
         ?string $symbol = null,
@@ -43,21 +43,21 @@ class ExchangeinfoDTO extends \App\Kstrwbry\DtoBundle\Base\DtoBase
         ?float $lastBuyTradePrice = null,
         ?float $lastSellTradePrice = null,
     ) {
-        if ($symbol !== null) $this->symbol = $symbol;
-        if ($currentPrice !== null) $this->currentPrice = $currentPrice;
-        if ($minQty !== null) $this->minQty = $minQty;
-        if ($stepSize !== null) $this->stepSize = $stepSize;
-        if ($precision !== null) $this->precision = $precision;
-        if ($baseAsset !== null) $this->baseAsset = $baseAsset;
-        if ($quoteAsset !== null) $this->quoteAsset = $quoteAsset;
-        if ($baseAssetAvailable !== null) $this->baseAssetAvailable = $baseAssetAvailable;
-        if ($quoteAssetAvailable !== null) $this->quoteAssetAvailable = $quoteAssetAvailable;
-        if ($quantityToBuy !== null) $this->quantityToBuy = $quantityToBuy;
-        if ($quoteAssetToBuy !== null) $this->quoteAssetToBuy = $quoteAssetToBuy;
-        if ($quantityToSell !== null) $this->quantityToSell = $quantityToSell;
-        if ($percentageToSpend !== null) $this->percentageToSpend = $percentageToSpend;
-        if ($lastBuyTradePrice !== null) $this->lastBuyTradePrice = $lastBuyTradePrice;
-        if ($lastSellTradePrice !== null) $this->lastSellTradePrice = $lastSellTradePrice;
+        if($symbol !== null) $this->symbol = $symbol;
+        if($currentPrice !== null) $this->currentPrice = $currentPrice;
+        if($minQty !== null) $this->minQty = $minQty;
+        if($stepSize !== null) $this->stepSize = $stepSize;
+        if($precision !== null) $this->precision = $precision;
+        if($baseAsset !== null) $this->baseAsset = $baseAsset;
+        if($quoteAsset !== null) $this->quoteAsset = $quoteAsset;
+        if($baseAssetAvailable !== null) $this->baseAssetAvailable = $baseAssetAvailable;
+        if($quoteAssetAvailable !== null) $this->quoteAssetAvailable = $quoteAssetAvailable;
+        if($quantityToBuy !== null) $this->quantityToBuy = $quantityToBuy;
+        if($quoteAssetToBuy !== null) $this->quoteAssetToBuy = $quoteAssetToBuy;
+        if($quantityToSell !== null) $this->quantityToSell = $quantityToSell;
+        if($percentageToSpend !== null) $this->percentageToSpend = $percentageToSpend;
+        if($lastBuyTradePrice !== null) $this->lastBuyTradePrice = $lastBuyTradePrice;
+        if($lastSellTradePrice !== null) $this->lastSellTradePrice = $lastSellTradePrice;
     }
 
     public function getSymbol(): string
@@ -216,24 +216,24 @@ class ExchangeinfoDTO extends \App\Kstrwbry\DtoBundle\Base\DtoBase
         return $this;
     }
 
-    public function getLastBuyTradePrice(): float
+    public function getLastBuyTradePrice(): ?float
     {
         return $this->lastBuyTradePrice;
     }
 
-    public function setLastBuyTradePrice(float $lastBuyTradePrice): static
+    public function setLastBuyTradePrice(?float $lastBuyTradePrice): static
     {
         $this->lastBuyTradePrice = $lastBuyTradePrice;
 
         return $this;
     }
 
-    public function getLastSellTradePrice(): float
+    public function getLastSellTradePrice(): ?float
     {
         return $this->lastSellTradePrice;
     }
 
-    public function setLastSellTradePrice(float $lastSellTradePrice): static
+    public function setLastSellTradePrice(?float $lastSellTradePrice): static
     {
         $this->lastSellTradePrice = $lastSellTradePrice;
 

@@ -58,6 +58,7 @@ abstract class RVI implements SignalPropertyInterface, RVIInterface
         $this->prevEntity   = $prevEntity;
         $this->prevEntityId = $prevEntity?->getId();
 
+        $this->run    = $kline->getRun();
         $this->period = $period;
         $this->close  = $kline->getClose();
 
@@ -145,26 +146,6 @@ abstract class RVI implements SignalPropertyInterface, RVIInterface
         $this->setRvi($rvi);
     }
 
-    /**
-     * Calculates and stores the RVI value and the buy/sell signal.
-     *
-     * Prerequisites (set by Indicator\RVI before this is called):
-     *   - $this->upperEMASum  populated via setUpperEMASum()  (rolling EMA sum of upward stdDev moves)
-     *   - $this->lowerEMASum  populated via setLowerEMASum()  (rolling EMA sum of downward stdDev moves)
-     *
-     *   - $this->upperEMA / $this->lowerEMA are set in the constructor from the
-     *     current vs. previous StdDev value.
-     *
-     * Results stored:
-     *   - $this->rvi    = 100 * upperEMASum / (upperEMASum + lowerEMASum)
-     *                     (clamped so neither sum is exactly 0)
-     *   - $this->signal via calcSignal()
-     *
-     * Note: Indicator\RVI also sets $this->rvi directly at the end of calcRVI().
-     * Calling calcIndicator() after add() will re-derive rvi from the already-set
-     * EMASum values — the result is identical, and calcSignal() is called to
-     * populate the signal column.
-     */
     public function calcIndicator(): float
     {
         $this->calcRVI();
@@ -175,8 +156,11 @@ abstract class RVI implements SignalPropertyInterface, RVIInterface
 
     public function calcSignal(): int
     {
+        /** @var RVIInterface $prev */
+        $prev = $this->getPrevEntity();
+
         if(
-            !$this->getPrevEntity()
+            !$prev
             || $this->getPeriod() > ($this->getKline()->getRunIndex() + 1)
         ) {
             $this->cross = TraderConsts::SIGNAL_NEUTRAL;
@@ -184,7 +168,7 @@ abstract class RVI implements SignalPropertyInterface, RVIInterface
             return $this->setSignal(TraderConsts::SIGNAL_NEUTRAL);
         }
 
-        $lastRvi = $this->getPrevEntity()->getRvi();
+        $lastRvi = $prev->getRvi();
         $signal = TraderConsts::SIGNAL_NEUTRAL;
 
         if(
@@ -206,7 +190,7 @@ abstract class RVI implements SignalPropertyInterface, RVIInterface
         $this->signal = $signal;
 
         $this->cross = $this->getSignal() === TraderConsts::SIGNAL_NEUTRAL
-            ? $this->getPrevEntity()->getCross()
+            ? $prev->getCross()
             : $this->getSignal();
 
         return $this->getSignal();

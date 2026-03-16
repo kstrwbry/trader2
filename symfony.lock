@@ -67,16 +67,16 @@
             ".editorconfig"
         ]
     },
-    "symfony/messenger": {
+    "symfony/lock": {
         "version": "8.0",
         "recipe": {
             "repo": "github.com/symfony/recipes",
             "branch": "main",
-            "version": "6.0",
-            "ref": "d8936e2e2230637ef97e5eecc0eea074eecae58b"
+            "version": "5.2",
+            "ref": "8e937ff2b4735d110af1770f242c1107fdab4c8e"
         },
         "files": [
-            "config/packages/messenger.yaml"
+            "config/packages/lock.yaml"
         ]
     },
     "symfony/routing": {

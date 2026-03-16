@@ -1,11 +1,16 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Kstrwbry\BinanceTraderBundle\Trait;
+namespace App\Kstrwbry\BinanceTraderBundle\Indicator;
 
 use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorEntityInterface;
+use App\Kstrwbry\BinanceTraderBundle\Interfaces\IndicatorInterface;
 
-trait IndicatorTrait #implements IndicatorInterface
+use function array_shift;
+use function count;
+use function end;
+
+abstract class IndicatorBase implements IndicatorInterface
 {
     /** @var array<IndicatorEntityInterface> */
     protected array $numbers;
@@ -22,8 +27,6 @@ trait IndicatorTrait #implements IndicatorInterface
     {
         $this->numbers[] = $number;
 
-        $number->setOutdatedEntity($this->getOutdatedEntity());
-
         $index = count($this->numbers) - 1;
         $this->calc($number, $index);
     }
@@ -38,18 +41,7 @@ trait IndicatorTrait #implements IndicatorInterface
 
     public function shift(): ?IndicatorEntityInterface
     {
-        $period = $this->last()?->getPeriod();
-
-        if(count($this->numbers) > $period + 3) {
-            return array_shift($this->numbers);
-        }
-
-        return null;
-    }
-
-    public function pop(): ?IndicatorEntityInterface
-    {
-        return array_pop($this->numbers);
+        return array_shift($this->numbers);
     }
 
     public function getOutdatedEntity(?int $index = null): ?IndicatorEntityInterface
@@ -62,7 +54,9 @@ trait IndicatorTrait #implements IndicatorInterface
 
         $index = $index ?? count($this->numbers) - 1;
 
-        return $this->numbers[$index - $period] ?? null;
+        $outdatedIndex = $index - ($period + 1);
+
+        return $this->numbers[$outdatedIndex] ?? null;
     }
 
     protected function reset(): void {}
